@@ -47,7 +47,7 @@ PresParams.MaxResponseTime      = 3;       % maximum to make recognition decisio
 PresParams.MaxConfDecInSecs     = 3;       % max time to make confidence decision
 PresParams.TotalTrialDur        = 3.5;       %
 
-if  strcmp(thePath.exptType,'tacs_enc') || strcmp(thePath.exptType,'tacs_enc_xdiva')
+if  strcmp(thePath.exptType,'tacs_enc') || strcmp(thePath.exptType,'tacs_enc_xdiva') || strcmp(thePath.exptType,'tacs_enc_xdiva_obj')
     PresParams.StarStimEEG      = 1;
 end
 

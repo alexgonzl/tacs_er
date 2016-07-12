@@ -28,7 +28,7 @@ function thePath = tACS_ER_path(subjNum,exptType)
 
 exptOptions = {'behav','behav_v3','behav_v4','behav_v5','behav_v6',...
     'behav_v7','behav_v8','behav_v9','behav_v10','eeg','eeg_enc','tacs_enc',...
-    'tacs_enc_xdiva', 'behav_v11'};
+    'tacs_enc_xdiva', 'behav_v11','tacs_enc_xdiva_obj'};
 
 if ~any(strcmp(exptOptions,exptType))
     error('Experiment type not available; please see help tACS_ER_path')
