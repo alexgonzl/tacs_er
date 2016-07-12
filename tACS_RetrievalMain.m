@@ -19,7 +19,8 @@ close all;
 sca;
 
 % load the task
-fileName = strcat(thePath.subjectPath,'/', thePath.exptType,'.mat');
+%fileName = strcat(thePath.subjectPath,'/', thePath.exptType,'.mat');
+fileName = strcat(thePath.subjectPath,'/','tacs_er_xdiva.task.mat');
 if exist(fileName,'file')
     load(fileName);
 else
@@ -49,6 +50,8 @@ PresParams.TotalTrialDur        = 3.5;       %
 
 if  strcmp(thePath.exptType,'tacs_enc') || strcmp(thePath.exptType,'tacs_enc_xdiva') || strcmp(thePath.exptType,'tacs_enc_xdiva_obj')
     PresParams.StarStimEEG      = 1;
+else
+    PresParams.StarStimEEG      = 0;
 end
 
 % determine numbers for recognition decision

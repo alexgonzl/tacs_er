@@ -1,4 +1,3 @@
-
 function [tacs_er] = tACS_ER_makelist_ObjSize_xDivaStim(thePath)
 % make lists for tacs encoding & retrieval (tacs_er) experiment
 % This design:
@@ -85,17 +84,16 @@ for n = randFileNums
     try
         x = imread(temp(n).name); %check if readable
         LargeObjMat{count} = imresize(x(:,:,1),2); % only resizing case for xdiva
-        LargeObjNames(count) = temp(n);
+        LargeObjNames{count} = temp(n).name;
         count = count + 1;
     catch
         fprintf(['\n' temp(n).name ' unreadable\n']);
     end
-    if numel(LargeObjNames)>=nLargeStim
+    if count>nLargeStim
         break
     end
 end
 %get the names in a cell array and shuffle
-LargeObjNames           = {LargeObjNames.name}';
 [LargeObjNames,index]   = Shuffle(LargeObjNames);
 LargeObjMat             = LargeObjMat(index);
 
@@ -107,21 +105,20 @@ SmallObjMat     = cell(nSmallStim,1);
 SmallObjNames   = cell(nSmallStim,1);
 nFiles = size(temp,1);
 randFileNums = datasample(1:nFiles,nFiles,'replace',false);
-for n = 1:randFileNums
+for n = randFileNums
     try
         x=imread(temp(n).name);  %check if readable
-        SmallObjMat(count) = imresize(x(:,:,1),2); % only resizing case for xdiva
-        SmallObjNames(count) = temp(n);
+        SmallObjMat{count} = imresize(x(:,:,1),2); % only resizing case for xdiva
+        SmallObjNames{count} = temp(n).name;
         count = count + 1;
     catch
         fprintf(['\n' temp(n).name ' unreadable\n']);
     end
-    if numel(SmallObjNames)>=nSmallStim
+    if count>nSmallStim
         break
     end
 end
 %get the names in a cell array and shuffle
-SmallObjNames = {SmallObjNames.name}';
 [SmallObjNames,index] = Shuffle(SmallObjNames);
 SmallObjMat = SmallObjMat(index);
 
@@ -165,7 +162,8 @@ EncStimNames(LargeEncTrials)    = EncLargeObjNames;
 nEncCondTrials      = nEncTrials/nEncConds;
 nEncCondsByStimType = nEncConds/2; % 5 for small; 5 for large
 EncCondTrialCode    = zeros(nEncTrials,1); % vector of condition code for each trial
-
+smallObjConds       = 1:nEncCondsByStimType;
+largeObjConds       = (nEncCondsByStimType+1):nEncConds;
 EncCondCodeIDs      = cell(nEncConds,1);
 EncCondCodeIDs(smallObjConds) = strcat('Small',cellfun(@num2str,num2cell(EncPhases'),'UniformOutput',false));
 EncCondCodeIDs(largeObjConds) = strcat('Large',cellfun(@num2str,num2cell(EncPhases'),'UniformOutput',false));
@@ -192,7 +190,7 @@ assert(sum(histc(EncCondTrialCode,1:nEncConds)==nEncCondTrials)==nEncConds,'uneq
 % 4 -> new large
 
 RetCondIDs          = {'OldSmall','OldLarge','NewSmal','NewLarge'};
-nRetCondTrials      = [nEncSmallStim,nEncLargeStim,nRetNewSmallStim,nRetNewLargeStim];
+nRetCondTrials      = [nEncSmallStim,nEncLargeStim,nRetNewSmallStim,nRetNewLargeStim]';
 RetCondTrialCode    = zeros(nRetTrials,1);    
 % assign condition such that each is equally likely per block.
 % also retry the sampling such that there are not more than maxNumConsecutiveOld
@@ -302,9 +300,9 @@ PresParams.stimDurationInFrames = PresParams.VideoFrameRate*PresParams.stimDurat
 PresParams.FixCrossFrameIDs           = 1; % on the first frame
 PresParams.FixCrossMinNFrames         = 20;% corresponding to 333ms or 2 cycles of 6Hz
 PresParams.InstructionsLength         = 2*60*PresParams.VideoFrameRate;
-PresParams.InstructionSet             = mod(thePath.subjectNum,2)==0 +1;
-tacs_er.EncFaceRespID                 = mod(thePath.subjectNum,2)==0 +1;
-tacs_er.EncSceneRespID                = mod(thePath.subjectNum,2)==1 +1;
+PresParams.InstructionSet             = mod(thePath.subjNum,2)==0 +1;
+tacs_er.EncFaceRespID                 = mod(thePath.subjNum,2)==0 +1;
+tacs_er.EncSceneRespID                = mod(thePath.subjNum,2)==1 +1;
 
 PresParams.tACSPreTaskWarmUpDur       = 3*60*PresParams.VideoFrameRate;     
 tacs_er.PresParams = PresParams;
@@ -397,4 +395,20 @@ im(verticalMarkIDs,(-1:1)+center)   = 255;
 return
 
 end
+
+function [Y,index] = Shuffle(X)
+
+[null,index] = sort(rand(size(X)));
+[n,m] = size(X);
+Y = zeros(size(X));
+if n == 1 || m == 1
+	Y = X(index);
+else
+	for j = 1:m
+		Y(:,j)  = X(index(:,j),j);
+	end
+end
+end
+ 
+
 
