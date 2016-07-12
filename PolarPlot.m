@@ -16,14 +16,14 @@ end
 
 if nargin<2
     if any(size(th)==1)
-        th = th(:);        
+        th = th(:);
         nCategories=1;
     else
         nCategories     = size(th,2);
     end
     opts = [];
     opts.maxR = 4/3;
-    rho = ones(size(th));    
+    rho = ones(size(th));
 end
 
 if nargin==2
@@ -45,7 +45,7 @@ end
 
 if ~isfield(opts,'alpha')
     alpha = 0.7;
-else     
+else
     alpha = opts.alpha;
 end
 
@@ -90,18 +90,29 @@ if ~isfield(opts,'connect')
     connect = 0;
 else
     connect = opts.connect;
+    if ~isfield(opts,'connectLinWidth')
+        connectLinWidth = 1;
+    else
+        connectLinWidth = opts.connectLinWidth;
+    end
+end
+
+if ~isfield(opts,'scatterDots')
+    scatterDots =1;
+else
+    scatterDots = opts.scatterDots;
 end
 % set figure
 han=figure(); clf;
 set(gcf,'paperpositionmode','auto','color','white')
-set(gcf,'paperUnits','points','papersize',[600 600],'paperposition',[0 0 600 600])
-set(gcf,'position',[100,100,400,400])
+set(gcf,'paperUnits','points','papersize',[300 300],'paperposition',[0 0 300 300])
+set(gcf,'position',[100,100,300,300])
 xlim(xLims);
 ylim(xLims); hold on;
 
 % polar grid
 if polarGrid
-    lCol = [0.9 0.9 0.9];
+    lCol = [0.2 0.2 0.2];
     plot(xlim,[0 0],'color',lCol,'linewidth',2);
     plot([0 0],ylim,'color',lCol,'linewidth',2);
     plot(xLims*0.67,xLims*0.67,'color',lCol,'linewidth',2);
@@ -116,18 +127,20 @@ if polarGrid
 end
 
 % scatter of dots by category
-K = 10;
-idx=crossvalind('kfold',N,10);
-for kk = 1:K
-    % re-order categories
-    catVec = randperm(nCategories);
-    for jj = catVec
-        s=scatter(reZ(idx==kk,jj),imZ(idx==kk,jj),'o');
-        s.MarkerFaceAlpha   = alpha;
-        s.MarkerEdgeAlpha   = 0;
-        s.SizeData          = markerSize(idx==kk,jj);
-        s.MarkerEdgeColor   = colors(jj,:);
-        s.MarkerFaceColor   = colors(jj,:);
+if scatterDots
+    K = 10;
+    idx=crossvalind('kfold',N,10);
+    for kk = 1:K
+        % re-order categories
+        catVec = randperm(nCategories);
+        for jj = catVec
+            s=scatter(reZ(idx==kk,jj),imZ(idx==kk,jj),'o');
+            s.MarkerFaceAlpha   = alpha;
+            s.MarkerEdgeAlpha   = 0;
+            s.SizeData          = markerSize(idx==kk,jj);
+            s.MarkerEdgeColor   = colors(jj,:);
+            s.MarkerFaceColor   = colors(jj,:);
+        end
     end
 end
 % for jj = 1:nCategories
@@ -156,7 +169,7 @@ end
 
 if connect
     for ii=1:N
-        plot(reZ(ii,:),imZ(ii,:),'color',[0.6 0.6 0.6])
+        plot(reZ(ii,:),imZ(ii,:),'color',[0.6 0.6 0.6],'linewidth',connectLinWidth)
     end
 end
 

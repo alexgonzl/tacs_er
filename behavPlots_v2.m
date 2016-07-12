@@ -191,7 +191,7 @@ set(gca,'xtick',PhasesDeg)
 xlabel(' Encoding Phase (deg)')
 
 print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/Behavior/' 'CategorizationPerfByPhaseStimType_' SubjSelectStr])
-%%
+%% make legend
 colors = [100 200 100;200 100 200]/255;
 txtStr = {'Faces','Scenes'};
 makeLegend(colors,txtStr);
@@ -473,8 +473,8 @@ clearvars -except out behav_out subjs nSubjs dataPath SubjSelectStr
 DPC = behav_out.retSummary.dPrimeConf(subjs,:);
 figure(2); clf;
 set(gcf,'paperpositionmode','auto','color','white')
-set(gcf,'paperUnits','points','papersize',[600 400],'paperposition',[0 0 600 400])
-set(gcf,'position',[50,500,600,400])
+set(gcf,'paperUnits','points','papersize',[400 300],'paperposition',[0 0 400 300])
+set(gcf,'position',[50,500,400 300])
 
 hold on;
 for ss = 1:nSubjs
@@ -506,15 +506,16 @@ close all
 % Faces
 DPCF = behav_out.retSummary.Face_dPrimeConf(subjs,:);
 figure(3); clf;
+AR = [500 300;]
 set(gcf,'paperpositionmode','auto','color','white')
-set(gcf,'paperUnits','points','papersize',[600 400],'paperposition',[0 0 600 400])
-set(gcf,'position',[50,500,600,400])
+set(gcf,'paperUnits','points','papersize',AR,'paperposition',[0 0 AR])
+set(gcf,'position',[50,500,AR])
 hold on;
 for ss = 1:nSubjs
     p=plot(1:3,DPCF(ss,:),'linewidth',1,'color',[0.8 0.8 0.8]);
 end
 plot(1:3,nanmean(DPCF),'linewidth',3,'color',[0.1 0.1 0.1]);
-set(gca,'fontsize',20,'xTick',1:3,'xticklabel',{'Low','Med','High'})
+set(gca,'fontsize',24,'xTick',1:3,'xticklabel',{'Low','Med','High'})
 xlim([0.8 3.2])
 ylim([-0.5 3.5])
 set(gca,'LineWidth',2,'ytick',[0:3])
@@ -528,14 +529,14 @@ disp(array2table(nanmean(DPCF),'variablenames',{'Low','Med','High'}))
 DPCS = behav_out.retSummary.Scene_dPrimeConf(subjs,:);
 figure(4); clf;
 set(gcf,'paperpositionmode','auto','color','white')
-set(gcf,'paperUnits','points','papersize',[600 400],'paperposition',[0 0 600 400])
-set(gcf,'position',[50,500,600,400])
+set(gcf,'paperUnits','points','papersize',[AR],'paperposition',[0 0 AR])
+set(gcf,'position',[50,500,AR])
 hold on;
 for ss = 1:nSubjs
     p=plot(1:3,DPCS(ss,:),'linewidth',1,'color',[0.8 0.8 0.8]);
 end
 plot(1:3,nanmean(DPCS),'linewidth',3,'color',[0.1 0.1 0.1]);
-set(gca,'fontsize',20,'xTick',1:3,'xticklabel',{'Low','Med','High'})
+set(gca,'fontsize',24,'xTick',1:3,'xticklabel',{'Low','Med','High'})
 xlim([0.8 3.2])
 ylim([-0.5 3.5])
 set(gca,'LineWidth',2,'ytick',[0:3])
@@ -839,11 +840,9 @@ print(gcf, '-dpdf',['../plots/tacs_enc_xdiva/Phase_HitMiss/' 'H-MPropByPhase' Su
 clearvars -except out behav_out subjs nSubjs dataPath SubjSelectStr
 
 X = out.HRByPhase(subjs,:);
-%X = out.HRByPhase(subjs,:)-repmat(mean(out.HRByPhase(subjs,:),2),[1,5]);
 xa = linspace(0,2*pi,1000);
 x = cos(xa);
 
-% Hits
 figure(4); clf;
 set(gcf,'paperpositionmode','auto','color','white')
 set(gcf,'paperUnits','points','papersize',[1000 600],'paperposition',[0 0 1000 600])
@@ -876,10 +875,19 @@ mZ = mean(Z,2);
 th = mod(angle(mZ),2*pi); rho = abs(mZ);
 opts = [];
 opts.colors = [180 180 180]/255;
-opts.markerSize=behav_out.retSummary.dPrime(subjs)*150;
+opts.markerSize=300;
+%opts.markerSize=behav_out.retSummary.dPrime(subjs)*150;
 han = PolarPlot(th,rho,opts);
 print(han, '-dpdf', ['../plots/tacs_enc_xdiva/Phase_HitMiss/' 'HitsRateMeanVec' SubjSelectStr]);
 disp(table(circ_rtest(th),'variablenames',{'rhao_test_pval'}))
+
+% 
+opts.maxR = 4/3;
+opts.markerSize=500;
+opts.colors = [255 180 150]/255;
+han = PolarPlot(th,[],opts);
+print(han, '-dpdf', ['../plots/tacs_enc_xdiva/Phase_HitMiss/' 'HitsRateMeanVecAng' SubjSelectStr]);
+
 
 % scatter of radii to dPrime
 x = rho;
@@ -900,7 +908,7 @@ clearvars -except out behav_out subjs nSubjs dataPath SubjSelectStr
 xa = linspace(0,2*pi,1000);
 x = cos(xa);
 
-X = out.MemScoreByPhase(subjs,:);
+X = out.MemScore2ByPhase(subjs,:);
 figure(7); clf;
 set(gcf,'paperpositionmode','auto','color','white')
 set(gcf,'paperUnits','points','papersize',[1000 600],'paperposition',[0 0 1000 600])
@@ -934,10 +942,15 @@ mZ = mean(Z,2);
 th = mod(angle(mZ),2*pi); rho = abs(mZ);
 opts = [];
 opts.colors = [180 180 180]/255;
-opts.markerSize=behav_out.retSummary.dPrime(subjs)*150;
+opts.markerSize=300;%behav_out.retSummary.dPrime(subjs)*150;
 han = PolarPlot(th,rho,opts);
 print(han, '-dpdf', ['../plots/tacs_enc_xdiva/Phase_HitMiss/'  'MemScoreMeanVec' SubjSelectStr]);
 disp(table(circ_rtest(th),'variablenames',{'rhao_test_pval'}))
+
+opts.maxR = 4/3;
+opts.markerSize=300;
+han = PolarPlot(th,[],opts);
+print(han, '-dpdf', ['../plots/tacs_enc_xdiva/Phase_HitMiss/' 'MemScoreMeanVecAng' SubjSelectStr]);
 
 % scatter of radii to dPrime
 x = rho;
@@ -960,8 +973,9 @@ opts.colors = [255 180 150; 150 220 220]/255;
 opts.markerSize=squeeze(sum(behav_out.retSummary.nH_nMiss_nFA_nCRs(subjs,:,1:2),2));
 
 % raw vectors
-th  = mod(out.HitMissMePhase(subjs,:),2*pi);
-rho = out.HitMissAbPhase(subjs,:);
+th  = mod(out.HM_MeVects(subjs,:,1),2*pi);
+rho = out.HM_MeVects(subjs,:,2);
+opts.markerSize=300;
 han = PolarPlot(th,rho,opts);
 print(han, '-dpdf', ['../plots/tacs_enc_xdiva/Phase_HitMiss/' 'MeanPhaseVectsByCond' SubjSelectStr]);
 
@@ -973,27 +987,25 @@ for ii = 1:2
 end
 disp(table(p,u,'VariableNames',{'P_Val','Z'},'rownames',{'Hits','Misses'}))
 
-% using r-statistic as magnitude.
-rhoR     = out.HitMiss_DistFromUniform(subjs,:);
-han = PolarPlot(th,rhoR,opts);
-print(han, '-dpdf', ['../plots/tacs_enc_xdiva/Phase_HitMiss/' 'MeanPhaseVectsByCondRStat' SubjSelectStr]);
-
 % raw only theta (ignores individuals SS strength)
 opts.maxR = 4/3;
+opts.markerSize=300;
 han = PolarPlot(th,ones(nSubjs,2),opts);
 print(han, '-dpdf', ['../plots/tacs_enc_xdiva/Phase_HitMiss/''MeanPhaseVectsByCond-Theta' SubjSelectStr]);
 
 %% line between points
 clearvars -except out behav_out subjs nSubjs dataPath SubjSelectStr
 
-th  = mod(out.HitMissMePhase(subjs,:),2*pi);
-rho = out.HitMissAbPhase(subjs,:);
+th  = mod(out.HM_MeVects(subjs,:,1),2*pi);
+rho = out.HM_MeVects(subjs,:,2);
 z   = rho.*exp(1i*th);
 
 opts = [];
-opts.markerSize =squeeze(sum(behav_out.retSummary.nH_nMiss_nFA_nCRs(subjs,:,1:2),2));
+%opts.markerSize =squeeze(sum(behav_out.retSummary.nH_nMiss_nFA_nCRs(subjs,:,1:2),2));
+opts.markerSize = 300;
 opts.colors = [255 180 150;150 220 220]/255;
 opts.connect = 1; opts.polarGrid =0; opts.meanVecs = 0;
+opts.magText =0;
 han = PolarPlot(th,rho,opts);
 print(han, '-dpdf', ['../plots/tacs_enc_xdiva/Phase_HitMiss/' 'MeanPhaseVectsByCond-Connected'  SubjSelectStr]);
 
@@ -1017,8 +1029,8 @@ print(han, '-dpdf', ['../plots/tacs_enc_xdiva/Phase_HitMiss/' 'MeanPhaseVectsByC
 %% difference in hit phase and miss phase
 clearvars -except out behav_out subjs nSubjs dataPath SubjSelectStr
 % mean differences
-th = mod(out.HitMissMePhase(subjs,:),2*pi);
-rho = out.HitMissAbPhase(subjs,:);
+th = mod(out.HM_MeVects(subjs,:,1),2*pi);
+rho = out.HM_MeVects(subjs,:,2);
 dTh= th(:,1)-th(:,2);
 
 z = rho.*exp(1j*th);
@@ -1026,11 +1038,12 @@ R = abs(z(:,1)-z(:,2));
 
 opts = [];
 opts.colors = [150 150 150]/255;
+opts.markerSize = 300;
 han = PolarPlot(dTh,R,opts);
 print(han, '-dpdf', ['../plots/tacs_enc_xdiva/Phase_HitMiss/' 'MeanPhaseVectDiff' SubjSelectStr]);
 
 % difference in hit phase and miss phase Rstat
-rhoR = out.HitMiss_DistFromUniform(subjs,:);
+rhoR = out.HM_R(subjs,:);
 z = rhoR.*exp(1j*th); RR = abs(z(:,1)-z(:,2));
 han = PolarPlot(dTh,RR,opts);
 print(han, '-dpdf', ['../plots/tacs_enc_xdiva/Phase_HitMiss/' 'MeanPhaseVectDiff-Rstat' SubjSelectStr]);
@@ -1066,6 +1079,166 @@ print(han, '-dpdf', ['../plots/tacs_enc_xdiva/Phase_HitMiss/' 'Diff-RstatAllHitM
 disp( 'Rayleigh test for Hit-Miss Angle: ')
 disp(table(p,u,'variablenames',{'P_Val','Z'},'rownames',{'Hit-Miss'}))
 
+%% HM vec Length By Confidence
+Ns = squeeze(sum(out.HM_Conf_N(subjs,:,:),2));
+lowNsubjs = find(sum(squeeze(sum(Ns<10,2)),2));
+subjs2 = setdiff(subjs,lowNsubjs);
+Ns(lowNsubjs,:)      = [];
+nSubjs2 = numel(subjs2);
+X=out.HM_Conf_Z(subjs2,:);
+Y=Ns;
+%
+figure(); clf;
+set(gcf,'paperpositionmode','auto','color','white')
+set(gcf,'paperUnits','points','papersize',[500 300],'paperposition',[0 0 500 300])
+set(gcf,'position',[50,500,500,300])
+
+hold on;
+for ss = 1:nSubjs2
+    p=plot(1:3,X(ss,:),'linewidth',1,'color',[0.8 0.8 0.8]);
+end
+plot(1:3,nanmedian(X),'linewidth',3,'color',[0.1 0.1 0.1]);
+set(gca,'fontsize',20,'xTick',1:3,'xticklabel',{'Low','Med','High'})
+xlim([0.8 3.2])
+ylim([0 0.55])
+set(gca,'LineWidth',2,'ytick',[0 0.2 0.4])
+ylabel(' P ')
+
+print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/Phase_HitMiss/VecLengthByConf' SubjSelectStr])
+%% High Confidence Hits.
+HitsConf    = squeeze(out.HM_Conf_MeVects(subjs,1,:,:));
+HitsConfR   = squeeze(out.HM_Conf_R(subjs,1,:));
+HitsConfN   = squeeze(out.HM_Conf_N(subjs,1,:));
+Conf        = squeeze(out.Conf_MeVects(subjs,:,:));
+ConfR       = squeeze(out.Conf_R(subjs,:));
+ConfN       = squeeze(out.ConfPhases_N(subjs,1,:,:));
+
+opts = [];
+opts.colors = [255 180 150; 140 125 120]/255;
+magMult = 25;
+
+th  = [HitsConf(:,3,1) HitsConf(:,1,1)];
+%rho = [HitsConfR(:,3) HitsConfR(:,1)];
+opts.maxR = 4/3;
+opts.alpha = 0.8;
+opts.markerSize=300;
+opts.markerSize = [HitsConfR(:,3) HitsConfR(:,1)]*magMult;
+han = PolarPlot(th,[],opts);
+print(han, '-dpdf', ['../plots/tacs_enc_xdiva/Phase_HitMiss/High_LowConfHits' SubjSelectStr]);
+
+txtStr = {'Hits HC','Hits LC'};
+makeLegend(opts.colors,[200;200],txtStr);
+print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/HitsHC_HitsLC']);
+
+th  = [HitsConf(:,3,1) Conf(:,1,1)];
+opts.maxR = 4/3;
+
+opts.alpha = 0.8;
+opts.markerSize=300;
+opts.markerSize = [HitsConfR(:,3) ConfR(:,1)]*magMult;
+han = PolarPlot(th,[],opts);
+print(han, '-dpdf', ['../plots/tacs_enc_xdiva/Phase_HitMiss/HitsHighConf_AllLowConf' SubjSelectStr]);
+
+txtStr = {'Hits HC','All LC'};
+makeLegend(opts.colors,[200;200],txtStr);
+print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/HitsHC_AllLC']);
+
+colors = repmat([0 0 0],[4,1]);
+qq = [3:3:12];
+%qq = quantile(opts.markerSize(:),[0.1:0.25:1]);
+%txtStr = cellfun(@num2str,num2cell(round(qq/magMult)),'UniformOutput',0);
+txtStr = cellfun(@num2str,num2cell(qq),'UniformOutput',0);
+makeLegend(colors,qq*magMult,txtStr);
+print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/MagnitudeLeg']);
+%% all confidence hits and misses
+th = HitsConf(:,3,1);
+opts.maxR = 4/3;
+opts.alpha = 0.8;
+opts.markerSize = HitsConfR(:,3)*magMult;
+opts.colors = [255 180 150]/255;
+han = PolarPlot(th,[],opts);
+print(han, '-dpdf', ['../plots/tacs_enc_xdiva/Phase_HitMiss/HitsHighConf' SubjSelectStr]);
+
+
+
+
+th = HitsConf(:,:,1);
+opts.maxR = 4/3;
+opts.alpha = 0.8;
+opts.markerSize = HitsConfR*magMult;
+opts.colors = brewermap(3,'set2');
+han = PolarPlot(th,[],opts);
+print(han, '-dpdf', ['../plots/tacs_enc_xdiva/Phase_HitMiss/HitsConf' SubjSelectStr]);
+
+
+MissConf    = squeeze(out.HM_Conf_MeVects(subjs,2,:,1));
+MissConfR   = squeeze(out.HM_Conf_R(subjs,2,:));
+th = MissConf(:,:);
+opts.maxR = 4/3;
+opts.alpha = 0.8;
+opts.colors = brewermap(3,'set2');
+opts.markerSize = MissConfR*magMult;
+han = PolarPlot(th,[],opts);
+print(han, '-dpdf', ['../plots/tacs_enc_xdiva/Phase_HitMiss/MissConf' SubjSelectStr]);
+
+%% Confidence independent of memory
+th  = Conf(:,:,1);
+opts.colors = brewermap(3,'set2');
+opts.maxR = 4/3;
+opts.alpha = 0.8;
+%opts.markerSize=300;
+opts.markerSize = ConfR*magMult;
+han = PolarPlot(th,[],opts);
+print(han,'-dpdf',['../plots/tacs_enc_xdiva/Phase_Confidence/ConfidencePolar']);
+txtStr = {'Low','Med','High'};
+makeLegend(opts.colors,[300;300;300],txtStr);
+print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/Phase_Confidence/ConfidenceLeg']);
+%% Hits High Confidence by Face Scene
+FH_HC=squeeze(out.HM_Conf_FaScn_MeVects(subjs,1,3,1,:));
+FH_HC_R = out.HM_Conf_FaScn_R(subjs,1,3,1);
+SH_HC=squeeze(out.HM_Conf_FaScn_MeVects(subjs,1,3,2,:));
+SH_HC_R = out.HM_Conf_FaScn_R(subjs,1,3,2);
+
+magMult = 25;
+opts = [];
+opts.colors = [255 180 150]/255;
+opts.maxR = 4/3;
+opts.alpha = 0.8;
+opts.markerSize=300;
+opts.markerSize = [FH_HC_R]*magMult;
+
+
+% FAces High Confidence Hits 
+th  = [FH_HC(:,1)];
+han = PolarPlot(th,[],opts);
+print(han, '-dpdf', ['../plots/tacs_enc_xdiva/Phase_FaceScene/FaceHighConf' SubjSelectStr]);
+
+% Scenes High Confidence Hits 
+th  = SH_HC(:,1);
+opts.markerSize = [SH_HC_R]*magMult;
+han = PolarPlot(th,[],opts);
+print(han, '-dpdf', ['../plots/tacs_enc_xdiva/Phase_FaceScene/ScnHighConf' SubjSelectStr]);
+
+%%
+x = [FH_HC_R./out.HM_FaScn_N(subjs,1,1) SH_HC_R./out.HM_FaScn_N(subjs,1,2)];
+x = [FH_HC_R SH_HC_R];
+figure(); clf;
+set(gcf,'paperpositionmode','auto','color','white')
+set(gcf,'paperUnits','points','papersize',[300 200],'paperposition',[0 0 300 200])
+set(gcf,'position',[50,500,300,200])
+
+hold on;
+for ss = 1:nSubjs
+    p=plot(1:2,x(ss,:),'linewidth',1,'color',[0.8 0.8 0.8]);
+end
+plot(1:2,nanmean(x),'linewidth',3,'color',[0.1 0.1 0.1]);
+set(gca,'fontsize',20,'xTick',1:2,'xticklabel',{'Face','Scene'})
+xlim([0.8 2.2])
+%ylim([0 0.15])
+set(gca,'LineWidth',2,'ytick',[0:3:15])
+ylabel(' nTrials ')
+
+print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/Phase_FaceScene/MagNormHighConf_FaceScn' SubjSelectStr])
 %% Face / Scene differences independent of memory
 clearvars -except out behav_out subjs nSubjs dataPath SubjSelectStr
 

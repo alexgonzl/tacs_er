@@ -1,3 +1,4 @@
+function out = PhaseDependentBehavAnalysis_xdiva2()
 expt = 'tacs_enc_xdiva';
 
 % load behavioral data
@@ -72,7 +73,7 @@ out.HM_CW_MeVects           = nan(nSubjs,2,2);    % mean confidence weighted pha
 out.HM_Conf_MeVects         = nan(nSubjs,2,3,2);  % mean phase per conf and condition
 out.FaScn_MeVects           = nan(nSubjs,2,2);      % mean phase per cond
 out.HM_FaScn_MeVects        = nan(nSubjs,2,2,2);  % mean phases for hits for separated by face and scenes
-out.HM_Conf_FaScn_MeVects   = nan(nSubjs,3,2,2,2);  % mean phases for hits for separated by face and scenes
+out.HM_Conf_FaScn_MeVects   = nan(nSubjs,2,3,2,2);  % mean phases for hits for separated by face and scenes
 out.Conf_MeVects            = nan(nSubjs,3,2);
 out.CW_MeVects              = nan(nSubjs,2);
 
@@ -97,6 +98,12 @@ out.QuantileMarks           = [0.33 0.66];
 for ss = 1:out.nSubjs
     try
         %% Additional entries for data matrix
+        
+        % Encoding RTs
+        out.datMat(ss,:,4)       = behav_out.encSubj{ss}.RTs;
+        out.EncRTVar(ss,1)        = behav_out.encSubj{ss}.RTsStats.sdRT;
+        out.EncRTVar(ss,2)        = behav_out.encSubj{ss}.FaceRTsStats.sdRT;
+        out.EncRTVar(ss,3)        = behav_out.encSubj{ss}.SceneRTsStats.sdRT;
         %Get retrieval RTs
         out.datMat(ss,:,11)         = behav_out.retSubj{ss}.RTs(out.RetStimAtEnc(ss,:));
         
@@ -122,7 +129,7 @@ for ss = 1:out.nSubjs
         out.datMat(ss,:,9)          = Confidence(out.RetStimAtEnc(ss,:));
         out.datMat(ss,:,10)         = out.datMat(ss,:,9);
         out.datMat(ss,HM(:,2),10)   = -1*out.datMat(ss,HM(:,2),10);
-        out.datMat(ss,:,15)         = out.datMat(ss,:,10) - nanmean(out.datMat(ss,:,10));
+        out.datMat(ss,:,15)         = out.datMat(ss,:,10)/6+0.5;
         
         % Confidence Weighted Phases
         out.datMat(ss,:,13) = out.datMat(ss,:,9).*exp(1i*out.datMat(ss,:,6));
@@ -166,6 +173,7 @@ for ss = 1:out.nSubjs
             out.ConfPhases{ss,co} = x;
             out.ConfPhases_N(ss,co) = numel(x);
             out.Conf_MeVects(ss,co,:) = [angle(mx), abs(mx)];
+            out.Conf_R(ss,co)         = numel(x)*abs(mx);
         end
         
         %% Get Mean Phase and Mean Vector length for hits and misses
@@ -175,17 +183,21 @@ for ss = 1:out.nSubjs
             out.HM_Phases{ss,jj} = Phases(HM(:,jj));
             x = exp(1i*out.HM_Phases{ss,jj}');
             xm(jj) = nanmean(x);
-            out.HM_Phases_N(ss,jj)  = numel(x);
-            out.HM_MeVects(ss,jj,:) = [angle(xm(jj)),abs(xm(jj))];
-            out.HM_R(ss,jj)         = numel(x)*abs(xm(jj));
+            abxm = abs(xm(jj));
+            nx = numel(x);
+            out.HM_Phases_N(ss,jj)  = nx;
+            out.HM_MeVects(ss,jj,:) = [angle(xm(jj)),abxm];
+            out.HM_R(ss,jj)         = nx*abxm;
+            
             xmR(jj)                 = out.HM_R(ss,jj)*exp(1j*angle(xm(jj)));
         end
-        out.HM_Z(ss,:)    = [angle(xm(1)-xm(2)),abs(xm(1)-xm(2))];
-        out.HM_ZR(ss,:) = [angle(xmR(1)-xmR(2)),abs(xmR(1)-xmR(2))];
+        out.HM_Z(ss)    = abs(xm(1)-xm(2));
+        out.HM_ZR(ss) = abs(xmR(1)-xmR(2));
 
-        
-        xm  = zeros(2,3);
+        xm  = zeros(2,3);        
+        xm2 = zeros(2,1);        
         xmR = zeros(2,3);
+        xmR2 = zeros(2,1);        
         for jj=1:2
             for co = 1:3
                 x = exp(1j*Phases( HM(:,jj) & CO(:,co)));
@@ -195,13 +207,28 @@ for ss = 1:out.nSubjs
                 out.HM_Conf_R(ss,jj,co)         = numel(x)*abs(xm(jj,co));
                 xmR(jj,co)                      = out.HM_Conf_R(ss,jj,co)*exp(1j*angle(xm(jj,co)));
             end % By Confidence
+            % excluding low confidence.
+            x = exp(1j*Phases(HM(:,jj) & (CO(:,2)+CO(:,3))));
+            xm2(jj) = nanmean(x);
+            out.HM_HMConf_N(ss,jj) = numel(x);
+            out.HM_HMConf_MeVects(ss,jj,:) = [angle(xm2(jj)), abs(xm2(jj))];
+            out.HM_HMConf_R(ss,jj)         = numel(x)*abs(xm2(jj));
+            xmR2(jj)                      = out.HM_HMConf_R(ss,jj)*exp(1j*angle(xm2(jj)));
+            
         end % Hit/Miss
+        out.HM_HMConf_Z(ss)         = abs(xm2(1)-xm2(2));
+        out.HM_HMConf_ZR(ss)        = abs(xmR2(1)-xmR2(2));
         for co = 1:3
-            out.HM_Conf_Z(ss,co,1)  = angle(xm(1,co)-xm(2,co));
-            out.HM_Conf_ZR(ss,co,1) = angle(xmR(1,co)-xmR(2,co));
-            out.HM_Conf_Z(ss,co,2)  = abs(xm(1,co)-xm(2,co));
-            out.HM_Conf_ZR(ss,co,2) = abs(xmR(1,co)-xmR(2,co));
+            out.HM_Conf_Z(ss,co)  = abs(xm(1,co)-xm(2,co));
+            out.HM_Conf_ZR(ss,co) = abs(xmR(1,co)-xmR(2,co));
         end
+        
+        %Compute Mean vectors for Low and Med conf hits
+        trials  = HM(:,1) & CO(:,1)+CO(:,2);
+        x       = exp(1j*Phases(trials));
+        xm      = nanmean(x);
+        out.H_LowMedConf_MeVects(ss,:) =[angle(xm), abs(xm)];
+        out.H_LowMedConf_N(ss,:) =numel(x);
         
         %% Face/Scenes Phases
         xm = zeros(2,2);
@@ -241,13 +268,18 @@ for ss = 1:out.nSubjs
         end
         %% Confidence Weighted Vectors
         % Get Mean Phases weighted by confidence.
-        xm = zeros(2,1);
+        xm  = zeros(2,1);
+        xmR = zeros(2,1);
         for jj=1:2
             x = out.datMat(ss,HM(:,jj),13);
             xm(jj) = nanmean(x);
-            out.HM_CW_MeVects(ss,jj,:) = [angle(xm(jj)),abs(xm(jj))];
+            out.HM_CW_MeVects(ss,jj,:)          = [angle(xm(jj)),abs(xm(jj))];
+            out.HW_CW_N(ss,jj)                  = numel(x);
+            out.HM_CW_R(ss,jj)                  = numel(x)*abs(xm(jj));
+            xmR(jj)                             = out.HM_CW_R(ss,jj)*exp(1j*angle(xm(jj)));
         end
-        out.HM_CW_Z(ss) = abs(xm(1)-xm(2));
+        out.HM_CW_Z(ss,:) = [angle(xm(1)-xm(2)),abs(xm(1)-xm(2))];
+        out.HM_CW_ZR(ss,:) = [angle(xmR(1)-xmR(2)),abs(xmR(1)-xmR(2))];
         
         x = nanmean(out.datMat(ss,:,16));
         out.CWMeVec(ss,:) = [angle(x) abs(x)];
@@ -275,7 +307,7 @@ for ss = 1:out.nSubjs
             out.MemScoreByPhase(ss,pp)= mean(out.datMat(ss,trials,10),'omitnan');
             out.MemScore2ByPhase(ss,pp)= mean(out.datMat(ss,trials,15),'omitnan');
         end
-
+        
         % HR by Confidence and Phase
         for co = 1:3
             H_trials = HM(:,1) & CO(:,co);
@@ -287,7 +319,7 @@ for ss = 1:out.nSubjs
             out.nMissConfByPhase(ss,co,:) = f;
             out.HR_Conf_Phase(ss,co,:)  = r./(r+f);
         end
-
+        
         
         %% Get mean vectors per retrieval Rts quantiles
         
@@ -299,7 +331,7 @@ for ss = 1:out.nSubjs
                 xm(jj,qq)   = nanmean(x);
                 out.HM_RetRTsQ_MeVects(ss,jj,qq,:)  = [angle(xm(jj,qq)),abs(xm(jj,qq))];
                 out.HM_RetRTsQ_N(ss,jj,qq)          = numel(x);
-                out.HM_RetRTsQ_R(ss,jj,qq)          = numel(x)*abs(xm(jj,qq));                 
+                out.HM_RetRTsQ_R(ss,jj,qq)          = numel(x)*abs(xm(jj,qq));
             end
             out.HM_RetRTsQ_Z(ss,:,:) = xm;
         end
@@ -351,3 +383,4 @@ for ss = 1:out.nSubjs
 end
 
 save([dataPath 'Summary/PhaseDependentAnalyses.mat'],'out')
+end
