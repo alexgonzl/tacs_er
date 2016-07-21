@@ -70,7 +70,7 @@ maxNumConsecutiveOld = 8;   % maximum number of old trials in a row
 % Set Random Seed based on SubjectNum
 s = RandStream.create('mt19937ar','seed',thePath.subjNum);
 RandStream.setGlobalStream(s)
-
+save_xdiva_flag = 0;
 %% load data names
 % large
 cd(fullfile(thePath.stim,'/Bigger'));
@@ -326,6 +326,7 @@ else
     end
 end
 
+if save_xdiva_flag
 if overwriteFlag
     ZeroPhaseImgFrameIDs       = (PresParams.FixCrossMinNFrames+1):...
         PresParams.stimDurationInFrames*2:PresParams.nXDivaFrames;
@@ -378,7 +379,7 @@ if overwriteFlag
     save([thePath.subjectPath '/xdiva/tACSPreTask_1.mat'],'images','imageSequence')
     
 end
-
+end
 end
 
 function im=fixCrossImage(imgSize,fixCrossSize)
