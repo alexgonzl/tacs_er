@@ -74,7 +74,7 @@ save_xdiva_flag = 0;
 %% load data names
 % large
 cd(fullfile(thePath.stim,'/Bigger'));
-temp = dir('*.jpeg');
+temp = dir('*.jpg');
 count = 1;
 LargeObjMat     = cell(nLargeStim,1);
 LargeObjNames   = cell(nLargeStim,1);
@@ -83,7 +83,7 @@ randFileNums = datasample(1:nFiles,nFiles,'replace',false);
 for n = randFileNums
     try
         x = imread(temp(n).name); %check if readable
-        LargeObjMat{count} = imresize(x(:,:,1),2); % only resizing case for xdiva
+        LargeObjMat{count} = x; % only resizing case for xdiva
         LargeObjNames{count} = temp(n).name;
         count = count + 1;
     catch
@@ -99,7 +99,7 @@ LargeObjMat             = LargeObjMat(index);
 
 % Small
 cd(fullfile(thePath.stim,'/Smaller'));
-temp = dir('*.jpeg');
+temp = dir('*.jpg');
 count = 1;
 SmallObjMat     = cell(nSmallStim,1);
 SmallObjNames   = cell(nSmallStim,1);
@@ -108,7 +108,7 @@ randFileNums = datasample(1:nFiles,nFiles,'replace',false);
 for n = randFileNums
     try
         x=imread(temp(n).name);  %check if readable
-        SmallObjMat{count} = imresize(x(:,:,1),2); % only resizing case for xdiva
+        SmallObjMat{count} = x; % only resizing case for xdiva
         SmallObjNames{count} = temp(n).name;
         count = count + 1;
     catch
@@ -205,8 +205,9 @@ while true
     end
     
     % quick way to the number of consecutive old trials
-    temp=conv(ones(maxNumConsecutiveOld,1),double((RetCondTrialCode<=2)));
-    if sum(temp>=maxNumConsecutiveOld)==0
+    x = RetCondTrialCode<=2;
+    temp=diff([0 find( ~ (x > 0))' numel(x)+1])-1;
+    if max(temp)<=maxNumConsecutiveOld
         break
     end
     counter=counter+1;
