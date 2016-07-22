@@ -32,7 +32,7 @@ else
 end
 
 % For debugging:
-% PsychDebugWindowConfiguration
+%PsychDebugWindowConfiguration
 
 % Presentation Parameters
 PresParams = [];
@@ -49,10 +49,10 @@ PresParams.stimDurationInSecs   = 1/PresParams.stimFrequency*PresParams.stimDura
 PresParams.totalStimDuration    = 1;
 PresParams.nCycles              = 1;
 PresParams.stimPresCycles       = ones(PresParams.nCycles,1); % stimuli will be presented every cycle
-PresParams.preStartTime         = 180; % in seconds.
+PresParams.preStartTime         = 1; % in seconds.
 
 PresParams.ITI_Range            = [0.5 1]; % variable ITI in secs
-PresParams.PostStimTime         = 0.5;     % time after stim (with no fixation).
+PresParams.PostStimTime         = 1.5;     % time after stim (with no fixation).
 PresParams.PreStimFixColor      = [1 1 1];
 PresParams.PreStimFixColorStr   = 'WHITE';
 PresParams.lineWidthPix         = 5;      % Set the line width for our fixation cross
@@ -254,15 +254,15 @@ try
             Screen('DrawTexture', window, imgTextures{tt}, [], [], 0);
             if ii==1                
                 [flip.VBLTimestamp, flip.StimulusOnsetTime, flip.FlipTimestamp, flip.Missed, flip.Beampos,] ...
-                    = Screen('Flip', window, vbl + 0.5*ifi);
+                    = Screen('Flip', window, vbl + 0.5*ifi); % flip asap
                 trialTime = GetSecs;  
             else
                 [flip.VBLTimestamp, flip.StimulusOnsetTime, flip.FlipTimestamp, flip.Missed, flip.Beampos,] ...
-                    = Screen('Flip', window, vbl + stimFlipDurSecs);                                
+                    = Screen('Flip', window, vbl + stimFlipDurSecs); % flip after  stimFlipDurSecs                             
             end
             vbl = flip.VBLTimestamp;
             % blank screen for stimFlipDurSecs
-            vbl  = Screen('Flip', window, vbl + stimFlipDurSecs);
+            vbl  = Screen('Flip', window, vbl + stimFlipDurSecs); % flip  to blank screen to complete cycle
             TimingInfo.stimPresFlip{tt,ii}=flip;
             
             if PresParams.tACSstim
@@ -274,19 +274,21 @@ try
                 end
             end
         end
-        [pressed,firstPress] = KbQueueCheck(activeKeyboardID);
-        if pressed
-            TimingInfo.trialKeyPress{tt} = KbName(firstPress);
-            TimingInfo.trialRT(tt) = firstPress(find(firstPress,1))-trialTime;
-        end
-        
+   
         % Draw Post-Stim Blank
         [flip.VBLTimestamp, flip.StimulusOnsetTime, flip.FlipTimestamp, flip.Missed, flip.Beampos,] ...
             = Screen('Flip', window, vbl + stimFlipDurSecs);
         TimingInfo.postStimMaskFlip{tt}=flip;
-        vbl = flip.VBLTimestamp;
-        for ii = 1:(postStimFrames-1)
-            vbl  = Screen('Flip', window,vbl + 0.5*ifi);
+        WaitSecs(PresParams.PostStimTime);
+%         vbl = flip.VBLTimestamp;
+%         for ii = 1:(postStimFrames-1)
+%             vbl  = Screen('Flip', window,vbl + 0.5*ifi);
+%         end
+
+        [pressed,firstPress] = KbQueueCheck(activeKeyboardID);
+        if pressed
+            TimingInfo.trialKeyPress{tt} = KbName(firstPress);
+            TimingInfo.trialRT(tt) = firstPress(find(firstPress,1))-trialTime;
         end
         
         % save every PresParams.SaveEvNtrials
