@@ -52,6 +52,7 @@ nEncLargeStim       = 200;
 nEncSmallStim       = 200;
 nRetNewSmallStim    = 100;
 nRetNewLargeStim    = 100;
+stimSize            = [500 500];
 assert((nEncLargeStim+nEncSmallStim+nRetNewLargeStim+nRetNewSmallStim==nTotalStim),'incorrect numbers of stims')
 nSmallStim = nEncSmallStim + nRetNewSmallStim;
 nLargeStim = nEncLargeStim + nRetNewLargeStim;
@@ -70,7 +71,7 @@ maxNumConsecutiveOld = 8;   % maximum number of old trials in a row
 % Set Random Seed based on SubjectNum
 s = RandStream.create('mt19937ar','seed',thePath.subjNum);
 RandStream.setGlobalStream(s)
-save_xdiva_flag = 0;
+save_xdiva_flag = 1;
 %% load data names
 % large
 cd(fullfile(thePath.stim,'/Bigger'));
@@ -288,11 +289,9 @@ PresParams.VideoFrameRate       = 60;
 PresParams.nXDivaFrames         = 90;
 PresParams.nXDivaPreludeFrames  = 10; % leave first 10 spots blank
 PresParams.stimFrequency        = 6;
-PresParams.stimDurationInCycles  = 0.5;
-PresParams.totalTrialDuration   = 60; % in seconds;
+PresParams.stimDurationInCycles  = PresParams.nXDivaFrames/PresParams.VideoFrameRate;
+PresParams.totalTrialDuration   = 1.5; % in seconds;
 PresParams.stimDurationInSecs   = 1/PresParams.stimFrequency*PresParams.stimDurationInCycles;
-PresParams.nCycles              = PresParams.stimFrequency*PresParams.totalTrialDuration;
-PresParams.stimPresCycles       = ones(PresParams.nCycles,1); % stimuli will be presented every cycle
 PresParams.DegreesPerFrame      = 360/(PresParams.VideoFrameRate/PresParams.stimFrequency);
 PresParams.VideoFrameDurSecs    = 1/PresParams.VideoFrameRate;
 PresParams.stimDurationInFrames = PresParams.VideoFrameRate*PresParams.stimDurationInCycles/PresParams.stimFrequency;
@@ -329,10 +328,12 @@ end
 
 if save_xdiva_flag
 if overwriteFlag
-    ZeroPhaseImgFrameIDs       = (PresParams.FixCrossMinNFrames+1):...
-        PresParams.stimDurationInFrames*2:PresParams.nXDivaFrames;
-    ZeroPhaseImgFrameIDs(PresParams.stimFrequency+1:end)=[];
-    
+    ZeroPhaseImgFrameIDs       = PresParams.FixCrossMinNFrames+1;    
+
+%     ZeroPhaseImgFrameIDs       = (PresParams.FixCrossMinNFrames+1):...
+%         PresParams.stimDurationInFrames*2:PresParams.nXDivaFrames;
+%     ZeroPhaseImgFrameIDs(PresParams.stimFrequency+1:end)=[];
+%     
     ZeroPhaseBlankFrameIDs       = ZeroPhaseImgFrameIDs+PresParams.stimDurationInFrames;
     
     images = zeros([stimSize,1,3], 'uint8');
