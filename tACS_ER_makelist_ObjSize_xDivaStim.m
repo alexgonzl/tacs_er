@@ -41,7 +41,7 @@ function [tacs_er] = tACS_ER_makelist_ObjSize_xDivaStim(thePath)
 %------------------------------------------------------------------------%
 % Author:       Alex Gonzalez
 % Created:      July 6, 2016
-% LastUpdate:   July 6, 2016
+% LastUpdate:   Sept 13, 2016
 %------------------------------------------------------------------------%
 
 %% Set-up
@@ -289,7 +289,7 @@ PresParams.VideoFrameRate       = 60;
 PresParams.nXDivaFrames         = 90;
 PresParams.nXDivaPreludeFrames  = 10; % leave first 10 spots blank
 PresParams.stimFrequency        = 6;
-PresParams.stimDurationInCycles  = PresParams.nXDivaFrames/PresParams.VideoFrameRate;
+PresParams.stimDurationInCycles  = 0.5; % half a theta cycle
 PresParams.totalTrialDuration   = 1.5; % in seconds;
 PresParams.stimDurationInSecs   = 1/PresParams.stimFrequency*PresParams.stimDurationInCycles;
 PresParams.DegreesPerFrame      = 360/(PresParams.VideoFrameRate/PresParams.stimFrequency);
@@ -328,41 +328,44 @@ end
 
 if save_xdiva_flag
 if overwriteFlag
-    ZeroPhaseImgFrameIDs       = PresParams.FixCrossMinNFrames+1;    
-
-%     ZeroPhaseImgFrameIDs       = (PresParams.FixCrossMinNFrames+1):...
-%         PresParams.stimDurationInFrames*2:PresParams.nXDivaFrames;
-%     ZeroPhaseImgFrameIDs(PresParams.stimFrequency+1:end)=[];
-%     
-    ZeroPhaseBlankFrameIDs       = ZeroPhaseImgFrameIDs+PresParams.stimDurationInFrames;
+    ZeroPhaseImgFrameIDs        = PresParams.FixCrossMinNFrames+1;    
+    ZeroPhaseBlankFrameIDs      = ZeroPhaseImgFrameIDs+PresParams.stimDurationInFrames;
     
+   
+    % Save individual stims into subjects path
+    fileName = 'tacs_enc_xdiva_';
+    
+    % pseudo trials before the task //** this is an xdiva fix for trouble
+    % going from condition to condition in run mode.
+    images = zeros([10 10,1,3], 'uint8');
+    images(:,:,1,1) = 128*ones([10 10],'uint8');
+    imageSequence = zeros(PresParams.nXDivaFrames,1,'uint32');
+    imageSequence(1)=1;    
+    nPreTaskPseudoTrials = 50;
+    for ii = 1:nPreTaskPseudoTrials
+        save([thePath.subjectPath '/xdiva/' fileName num2str(ii) '.mat'],'images','imageSequence')
+    end
     images = zeros([stimSize,1,3], 'uint8');
     images(:,:,1,2) = 128*ones(stimSize,'uint8');
     images(:,:,1,3) = fixCrossImage(stimSize(1),round(stimSize(1)/20));
     
-    
-    % Save individual stims into subjects path
-    fileName = 'tacs_enc_xdiva_';
-    for tt = 1:nEncTrials
-        
-        images(:,:,1,1) = StimObj(EncStimNames{tt});
-        
-        condNum = tacs_er.EncTrialPhaseConds(tt);
+    for tt = 1:nEncTrials        
+        images(:,:,1,1) = StimObj(EncStimNames{tt});        
+        condNum = tacs_er.EncTrialPhaseConds(tt);        
         % n phases go from 1 to nEncPhases, in jumps of 2 frames=72deg for 6Hz
         % stimulation
         imageSequence = zeros(PresParams.nXDivaFrames,1,'uint32');
         imageSequence(1)=3;
         imageSequence(ZeroPhaseImgFrameIDs+(condNum-1)*2)=1;
-        imageSequence(ZeroPhaseBlankFrameIDs+(condNum-1)*2)=2;
-        
-        save([thePath.subjectPath '/xdiva/' fileName num2str(tt) '.mat'],'images','imageSequence')
+        imageSequence(ZeroPhaseBlankFrameIDs+(condNum-1)*2)=2;        
+        save([thePath.subjectPath '/xdiva/' fileName num2str(tt+nPreTaskPseudoTrials) '.mat'],'images','imageSequence')
     end
     
     % save instructions (changes by subj number)
     if PresParams.InstructionSet==1
-        img  = rgb2gray(imread([thePath.stim '/EncInstructions_xDiva1.png']));
+        img  = rgb2gray(imread([thePath.stim '/ObjInst_1.png']));
     else
-        img  = rgb2gray(imread([thePath.stim '/EncInstructions_xDiva2.png']));
+        img  = rgb2gray(imread([thePath.stim '/ObjInst_2.png']));
     end
     images = zeros([size(img),1,1], 'uint8');
     images(:,:,1,1) = img;        
@@ -413,5 +416,3 @@ else
 end
 end
  
-
-
