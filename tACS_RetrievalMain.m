@@ -1,4 +1,3 @@
-
 %function [ret_out,msg]=tACS_RetrievalMain(thePath)
 % tACS experiment image recognition memory presentation script
 % This script takes the 'tacs_er' structure that contains the stimuli and
@@ -11,7 +10,7 @@
 %------------------------------------------------------------------------%
 % Author:       Alex Gonzalez
 % Created:      Aug 20th, 2015
-% LastUpdate:   July 11th, 2016
+% LastUpdate:   Sept 13th, 2016
 %------------------------------------------------------------------------%
 
 % clear all the screens
@@ -20,7 +19,7 @@ sca;
 
 % load the task
 %fileName = strcat(thePath.subjectPath,'/', thePath.exptType,'.mat');
-fileName = strcat(thePath.subjectPath,'/','tacs_er_xdiva.task.mat');
+fileName = strcat(thePath.subjectPath,'/','tacs_er_objstim.task.mat');
 if exist(fileName,'file')
     load(fileName);
 else
@@ -48,10 +47,8 @@ PresParams.MaxResponseTime      = 3;       % maximum to make recognition decisio
 PresParams.MaxConfDecInSecs     = 3;       % max time to make confidence decision
 PresParams.TotalTrialDur        = 3.5;       %
 
-if  strcmp(thePath.exptType,'tacs_enc') || strcmp(thePath.exptType,'tacs_enc_xdiva') || strcmp(thePath.exptType,'tacs_enc_xdiva_obj')
+if  any(strcmp(thePath.exptType,{'tacs_enc','tacs_enc_xdiva','tacs_enc_xdiva_obj','tacs_er_objstim'}))
     PresParams.StarStimEEG      = 1;
-else
-    PresParams.StarStimEEG      = 0;
 end
 
 % determine numbers for recognition decision
@@ -89,14 +86,8 @@ if PresParams.StarStimEEG
         [ret,LSLOutlet]=MatNICMarkerConnectLSL('alexLSL');
         if ret<0
             error('could not connect to streaming layer')
-        end
-        [ret] = MatNICStartEEG (['s' num2str(thePath.subjNum)], true, false, socket);
-        if ret<0
-            error('could not start eeg')
-        end
+        end        
         
-        %         [~,status] = MatNICQueryStatus(socket);
-        %         assert(strcmp(status, 'CODE_STATUS_EEG_ON'),'aborting, EEG not ready.')
     catch msg
         MatNICMarkerCloseLSL(LSLOutlet);
         MatNICStopEEG(socket);
@@ -155,7 +146,7 @@ try
     
     % post-stim max confidence response period duration
     MaxConfDescFrames  = round(PresParams.MaxConfDecInSecs /ifi);
-
+    
     % pre-make image textures
     imgTextures = cell(nTrials,1);
     for ii = 1:nTrials
@@ -206,9 +197,9 @@ try
             'Press ''' resumeKey ''' to begin the experiment.'];
     else
         InstString = ['Instructions\n\n' ...
-            'You will be presented with images that you might recognized from the previous experiment. '...
-            'Your task is to indentify which images were presented before and which ones are new '...
-            'by pressing a button. \n'...
+            'You will be presented with images that you might recognized from the previous task. '...
+            'Your  in this part is to indentify which images were presented before and which ones are new '...
+            'by pres*sing a button. \n'...
             'For ' RespConds{1} ' images you press the ''' PresParams.RespButtons(1) ''' key\n'...
             'for ' RespConds{3} ' images you press the ''' PresParams.RespButtons(3) ''' key\n\n' ...
             'After making the old/new judgment on the image, you will also be indicating your '...
@@ -243,7 +234,7 @@ try
         'Press ''' resumeKey ''' to continue'];
     
     DrawFormattedText(window,InstString, 'wrapat', 'center', 255, ...
-        75, [],[],[],[],[xCenter*0.1,0,screenXpixels*0.8,screenYpixels]);
+        75, [],[],[],[],[xCenter*0.2,0,screenXpixels*0.6,screenYpixels]);
     Screen('Flip',window);
     
     % resume if Resume Key is pressed
@@ -258,8 +249,12 @@ try
     Priority(topPriorityLevel);
     
     if PresParams.StarStimEEG
+        [ret] = MatNICStartEEG (['s' num2str(thePath.subjNum)], true, false, socket);
+        if ret<0
+            error('could not start eeg')
+        end
         % start of experiment marker
-        sendMarker(9,LSLOutlet)
+        sendMarker(1,LSLOutlet)
     end
     
     % Draw blank for a bit
@@ -299,7 +294,7 @@ try
         
         if PresParams.StarStimEEG
             % true retrieval condition codes marker
-            sendMarker(tacs_er.RetCondTrialCode(tt),LSLOutlet)
+            sendMarker((tacs_er.RetCondTrialCode(tt)<3)+6,LSLOutlet)
         end
         
         % Wait for Response
@@ -328,13 +323,13 @@ try
                         TimingInfo.CondResp{tt} = RespConds{1};
                         if PresParams.StarStimEEG
                             % old response marker
-                            sendMarker(5,LSLOutlet)
+                            sendMarker(6,LSLOutlet)
                         end
                     case PresParams.RespButtons(3)
                         TimingInfo.CondResp{tt} = RespConds{3};
                         if PresParams.StarStimEEG
                             % new response marker
-                            sendMarker(6,LSLOutlet)
+                            sendMarker(7,LSLOutlet)
                         end
                     otherwise
                         TimingInfo.CondResp{tt} = 'wrongkey';
@@ -402,7 +397,7 @@ try
                 vbl=Screen('Flip', window, vbl + 0.5* ifi);
                 if PresParams.StarStimEEG
                     % confidence probe
-                    sendMarker(7,LSLOutlet)
+                    sendMarker(8,LSLOutlet)
                 end
                 % Wait for Response
                 [secs,key]=KbQueueWait2(activeKeyboardID,PresParams.MaxConfDecInSecs-2*ifi);
@@ -419,6 +414,10 @@ try
                             DrawFormattedText(window, WrongConfKeyText, 'center' , 'center');
                             vbl=Screen('Flip', window, vbl + 0.5*ifi);
                             WaitTillResumeKey(resumeKey,activeKeyboardID)
+                    end
+                    if PresParams.StarStimEEG
+                        % confidence resp
+                        sendMarker(8,LSLOutlet)
                     end
                 else
                     DrawFormattedText(window,NoRespText, 'center' , 'center');
@@ -467,7 +466,7 @@ try
     ret_out.TimingInfo  = TimingInfo;
     if PresParams.StarStimEEG
         % end of experiment
-        sendMarker(10,LSLOutlet)
+        sendMarker(5,LSLOutlet)
         MatNICMarkerCloseLSL(LSLOutlet);
         MatNICStopEEG(socket);
     end
