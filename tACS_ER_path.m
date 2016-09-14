@@ -20,17 +20,18 @@ function thePath = tACS_ER_path(subjNum,exptType)
 %   'eeg_enc'   --> eeg at encoding only (no tacs)
 %   'tacs_enc'  --> tacs at encoding
 %   'tacs_enc_xdiva' --> produces image files for xdiva presententation
+%   'tacs_er_objstim' --> matlab encoding tacs w object stimuli
 % subject 0 reserved for debugging/testing
 
 %------------------------------------------------------------------------%
 % Author:       Alex Gonzalez (from similar lab copies)
 % Created:      May 25, 2015
-% LastUpdate:   July 21st, 2015
+% LastUpdate:   Sept 13st, 2016 
 %------------------------------------------------------------------------%
 
 exptOptions = {'behav','behav_v3','behav_v4','behav_v5','behav_v6',...
     'behav_v7','behav_v8','behav_v9','behav_v10','eeg','eeg_enc','tacs_enc',...
-    'tacs_enc_xdiva', 'behav_v11','behav_v12','tacs_enc_xdiva_obj'};
+    'tacs_enc_xdiva', 'behav_v11','behav_v12','tacs_enc_xdiva_obj','tacs_er_objstim'};
 
 if ~any(strcmp(exptOptions,exptType))
     error('Experiment type not available; please see help tACS_ER_path')
@@ -67,5 +68,3 @@ addpath(genpath(thePath.scripts));
 addpath(genpath(thePath.subjectPath));
 
 return
-
-
