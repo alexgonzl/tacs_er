@@ -8,6 +8,8 @@ nn = 300;
 % Number of offset phases
 No = 10;
 
+dth = pi;
+kp = 0.1;
 % Visual Presentation Error Term
 er = 2.5/(2*pi);
 

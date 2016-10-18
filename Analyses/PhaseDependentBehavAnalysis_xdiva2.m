@@ -5,6 +5,8 @@ expt = 'tacs_enc_xdiva';
 dataPath    = ['~/Google Drive/Research/tACS/tACS_ER_task/data/' expt '/'];
 load([dataPath 'Summary/BehavSummary.mat'])
 addpath CircStats
+
+
 %%
 out                         = [];
 out.nEncTrials              = 300;

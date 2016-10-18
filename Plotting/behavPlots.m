@@ -20,7 +20,7 @@ else
 end
 nSubjs  = numel(subjs);
 %% Encoding Results
-HR = [behav_out.encSummary.FaceHR(subjs) behav_out.encSummary(subjs)];
+HR = [behav_out.encSummary.FaceHR(subjs) behav_out.encSummary.SceneHR(subjs)];
 
 %% dPrimes
 clearvars -except out behav_out subjs nSubjs dataPath SubjSelectStr
