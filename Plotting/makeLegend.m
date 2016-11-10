@@ -1,14 +1,13 @@
 function han=makeLegend(colors,markerSize,textStr)
 
 figure(); clf;
-
+AR = [240 200];
 set(gcf,'paperpositionmode','auto','color','white')
-set(gcf,'paperUnits','points','papersize',[300 300],'paperposition',[0 0 300 300])
-set(gcf,'position',[200, 200, 300, 300])
-set(gca,'units','points','position',[50 50 200 200]); hold on;
+set(gcf,'paperUnits','points','papersize',[AR],'paperposition',[0 0 AR])
+set(gcf,'position',[200, 200, AR])
+set(gcf,'units','points'); hold on;
 
 nLabels = size(colors,1);
-
 
 cnt = 1;
 for ii = nLabels:-1:1

@@ -93,9 +93,12 @@ for ss = 1:nSubjs
             load([dataPath 's' num2str(ss) '/encData_xdiva.mat'])
             load([dataPath 's' num2str(ss) '/tacs_er_xdiva.task.mat'])
             behav_out.encSubj{ss}               = EncAnalysisBySubj_xdiva(enc_out,tacs_er);       
+        elseif strcmp(expt,'tacs_er_objstim')
+            load([dataPath 's' num2str(ss) '/tacs_er_objstim.enc.mat'])
+            load([dataPath 's' num2str(ss) '/tacs_er_objstim.task.mat'])
         else
             load([dataPath 's' num2str(ss) '/tacs_er.encoding.mat'])
-             behav_out.encSubj{ss}              = EncAnalysisBySubj(enc_out);       
+             behav_out.encSubj{ss}                  = EncAnalysisBySubj(enc_out);       
         end
         behav_out.encSummary.goodSubj(ss)           = behav_out.encSubj{ss}.goodSubj;
         behav_out.encSummary.meanAcc(ss)            = behav_out.encSubj{ss}.meanAccuracy;

@@ -102,11 +102,17 @@ if ~isfield(opts,'scatterDots')
 else
     scatterDots = opts.scatterDots;
 end
+
+if ~isfield(opts,'handle')
 % set figure
 han=figure(); clf;
 set(gcf,'paperpositionmode','auto','color','white')
 set(gcf,'paperUnits','points','papersize',[300 300],'paperposition',[0 0 300 300])
 set(gcf,'position',[100,100,300,300])
+else
+    han = opts.handle;
+    axes(han);
+end
 xlim(xLims);
 ylim(xLims); hold on;
 
@@ -163,7 +169,7 @@ if magText
     xstr = round(xpos*100)/100;
     t=text(xpos,0,num2str(xstr));
     t.FontSize=18;
-    t.HorizontalAlignment='center';
+    t.HorizontalAlignment='left';
     t.VerticalAlignment='top';
 end
 

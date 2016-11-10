@@ -18,9 +18,10 @@ else
 end
 
 han=figure(); clf;
+AR = [300 300];
 set(gcf,'paperpositionmode','auto','color','white')
-set(gcf,'paperUnits','points','papersize',[400 400],'paperposition',[0 0 400 400])
-set(gcf,'position',[75,75,250,250])
+set(gcf,'paperUnits','points','papersize',[AR],'paperposition',[0 0 AR])
+set(gcf,'position',[200,2000,AR])
 hold on
 
 maxX = max(x(:)); minX = min(x(:));
