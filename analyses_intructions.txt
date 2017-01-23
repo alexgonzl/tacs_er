@@ -1,0 +1,26 @@
+tacs er obj analyses
+expt = ‘tacs_er_objstim’
+
+1) put eeg/stim file names into Library/subjFileInfo.mat
+
+2) get the phase of each event:
+getEventsPhase(subj,expt)
+
+3) get behavioral data structure
+EncRetBehavAnalyses(expt,nSubjs)
+
+4) get data matrix
+DataMat_objstim()
+
+5) encoding analyes
+EncodingAnalysesPlots_Expt2
+
+6) retrival analyses
+RetrievalBehavioralAnalysesPlots_Expt2.m
+
+%% 
+Determining if there was entrainment on the EEG:
+imagesc(mod(angle(exp((out.datMat(:,:,4)-out.datMat(:,:,10))*1j)'),2*pi)):
+
+Subjects with incosistent EEG
+8, 27, 29 (before trial 129), 32, 34

@@ -115,7 +115,8 @@ for ss = 1:nSubjs
             load([dataPath 's' num2str(ss) '/tacs_er_objstim.test.mat'])
             load([dataPath 's' num2str(ss) '/EventsPhase.mat']);
             behav_out.Trials.PhaseInfo          = out;
-            behav_out.Trials.AllStimPhases(ss,:)    = out.FzFC2Phases;      
+            behav_out.Trials.AllStimPhases1(ss,:)    = out.PzPhases;
+            behav_out.Trials.AllStimPhases2(ss,:)    = out.FzFC2Phases;            
             [~,i]=intersect(out.AllStimIdx,out.SmallIdx);
             behav_out.Trials.SmallStimPhases(ss,:)  = out.FzFC2Phases(i);
             [~,i]=intersect(out.AllStimIdx,out.BigIdx);

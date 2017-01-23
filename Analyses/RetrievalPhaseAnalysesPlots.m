@@ -166,7 +166,7 @@ set(gca,'fontsize',20,'xtick',[0.5:5],'xticklabel',[])
 xlim([0 5])
 ylim([10 50])
 set(gca,'ytick',[0:10:100])
-ylabel(' Hit Rate ')
+ylabel(' # Trials ')
 set(gca,'LineWidth',2)
 % sinwave (x-axis)
 axes('units','points','position',[100 80 400 50]); hold on;

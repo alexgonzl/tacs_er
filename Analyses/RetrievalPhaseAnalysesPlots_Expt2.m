@@ -13,20 +13,17 @@ load([dataPath 'Summary/BehavSummary.mat'])
 load([dataPath 'Summary/DataMatrix.mat'])
 
 % Exclusion of subjects based on poor behavioral performance
-badSubjs =  [3 6];
+badSubjs =  [3 6 8 27 29 32 34];
 
-nTotalSubjs      = 22;
+nTotalSubjs      = 37;
 subjs           = setdiff(1:nTotalSubjs,badSubjs);
 nSubjs          = numel(subjs);
 
-% f = @(th)(mean(exp(1j*th)));
-% f2 = @(th,mag)(mean(mag.*exp(1j*th)));
-
-% data colors
+%% data colors
 temp        = brewermap(6,'accent');
 SmallColor  = temp(5,:);
 BigColor    = temp(6,:);
-temp        = brewermap(2,'set1');
+temp        = brewermap(2,'set2');
 HCcolor     = temp(1,:);
 LCcolor     = temp(2,:);
 
@@ -34,18 +31,18 @@ greyColor   = [119,136,153]/255;
 hitColor    = [255 180 150]/255;
 missColor   = [150 220 220]/255;
 
-% functions
-m_th     = @(th)(angle(mean(exp(1j*th))));
-m_rho    = @(th)(abs(mean(exp(1j*th))));
-deltaTh = @(th1,th2)(mod(abs(m_th(th1)-m_th(th2)),2*pi));
-
 % Trial Types
 P = mod(out.datMat(subjs,:,4),2*pi); % Phase
 H = out.datMat(subjs,:,5); % Hits
 M = out.datMat(subjs,:,6); % Misses
 C = out.datMat(subjs,:,7); % Confidence
-R = out.datMat(subjs,:,8); % Retrieval RTs
+RR = -log(out.datMat(subjs,:,8)); % Retrieval RTs
+ER = out.datMat(subjs,:,3); % Encoding RTs
+ST = out.datMat(subjs,:,1); % stimulus names
+RRr = (RR*6)*2*pi; % retrieval rts in radians
+ERr = (ER*6)*2*pi; % retrieval rts in radians
 
+% Phase Selection
 % Phase Bins
 PhaseDelta  = 2*pi/5;
 [~,PhaseEdges]=histcounts(P(1,:),'BinWidth',PhaseDelta);
@@ -57,29 +54,40 @@ NsPhase  = zeros(nSubjs, nPhaseBins);
 NHsPhase = zeros(nSubjs, nPhaseBins);
 NMsPhase = zeros(nSubjs, nPhaseBins);
 for ss = 1:nSubjs
-    NsPhase(ss,:)   = histcounts(P(ss,:),'BinWidth',PhaseDelta);
-    NHsPhase(ss,:)  = histcounts(P(ss,H(ss,:)==1),'BinWidth',PhaseDelta);
-    NMsPhase(ss,:)  = histcounts(P(ss,M(ss,:)==1),'BinWidth',PhaseDelta);
+    NsPhase(ss,:)       = histcounts(P(ss,:),PhaseEdges);
+    NHsPhase(ss,:)      = histcounts(P(ss,H(ss,:)==1),PhaseEdges);
+    NHsHCPhase(ss,:)    = histcounts(P(ss,H(ss,:)==1 & C(ss,:)==3),PhaseEdges);
+    NHsMCPhase(ss,:)    = histcounts(P(ss,H(ss,:)==1 & C(ss,:)==2),PhaseEdges);
+    NHsLCPhase(ss,:)    = histcounts(P(ss,H(ss,:)==1 & C(ss,:)==1),PhaseEdges);
+    NMsPhase(ss,:)      = histcounts(P(ss,M(ss,:)==1),PhaseEdges);
 end
 
+% Functions
 PhaseMat = repmat(exp(1j*PhaseCenters),nSubjs,1);
-f = @(X)(mean(X.*PhaseMat./NsPhase,2));
+fQuant = @(X)(mean(X.*PhaseMat./NsPhase,2));
 
-%% all Hits by Phase
+f1 = @(th)(nansum(exp(1j*th)));
+f1b = @(th)(nanmean(exp(1j*th)));
+f2 = @(th,mag)(nanmean(mag.*exp(1j*th)));
+m_th     = @(th)(angle(mean(exp(1j*th))));
+m_rho    = @(th)(abs(mean(exp(1j*th))));
+deltaTh = @(th1,th2)(mod(abs(m_th(th1)-m_th(th2)),2*pi));
+
+%% all Hits by Phase (phase bins)
 close all
-Z_H = f(NHsPhase);
-Z_M = f(NMsPhase);
+Z_qH = fQuant(NHsPhase);
+Z_qM = fQuant(NMsPhase);
 
 % Polar Plots for nHits
-th1  = angle(Z_H); th2 = angle(Z_M);
-rho1 = abs(Z_H);   rho2= abs(Z_M);
+th1  = angle(Z_qH); th2 = angle(Z_qM);
+rho1 = abs(Z_qH);   rho2= abs(Z_qM);
 
 % with magnitude of modulation
 opts = [];
 opts.colors = hitColor ;
 opts.markerSize=300;
 PolarPlot(th1,rho1,opts)
-print(gcf,'-dpdf',[plotPath1 'HitProbPolarRho'])
+print(gcf,'-dpdf',[plotPath1 'HitProbPolarRhoQuant'])
 
 opts = [];
 opts.colors = hitColor;
@@ -88,14 +96,14 @@ opts.alpha  = 0.8;
 opts.markerSize=300;
 opts.magText    = '';
 PolarPlot(th1,[],opts)
-print(gcf,'-dpdf',[plotPath1 'HitProbPolar'])
+print(gcf,'-dpdf',[plotPath1 'HitProbPolarQuant'])
 
 [p,r] = circ_rtest(th1);
 th_hat = circ_mean(th1);
 fprintf('Rayleight Test for modulation on Hits across subjects:\n')
 fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
 
-%% Misses by Phase
+%% Misses by Phase (phase bins)
 close all
 
 % with magnitude of modulation
@@ -119,108 +127,102 @@ fprintf('Rayleight Test for Misses modulation across subjects:\n')
 th_hat = circ_mean(th2);
 fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
 
-%% HitRate by Phase
-close all
-Z = nHitP./(nHitP+nMissP);
-greyColor = [119,136,153]/255;
-
-% Hit Rate scatter by phase
-figure(3); clf;
-set(gcf,'paperpositionmode','auto','color','white')
-set(gcf,'paperUnits','points','papersize',[600 400],'paperposition',[0 0 600 400])
-set(gcf,'position',[100,100,600,400])
-
-axes('units','points','position',[100 150 400 200]); hold on;
-x = randn(nSubjs,1)*0.05+0.5;
-y = Z;
-nBars = 5;
-for ii =1:nBars
-    xx = x+(ii-1);
-    yy = y(:,ii);
-    plot([0.2 0.8]+(ii-1), ones(1,2)*median(yy),'linewidth',4,'color','k')
-    s = scatter(xx,yy);
-    s.MarkerFaceAlpha=0.8;
-    s.MarkerEdgeAlpha=0.7;
-    s.SizeData          = 120;
-    s.MarkerEdgeColor = greyColor;
-    s.MarkerFaceColor = greyColor;
+%% hits by phase
+clc; close all;
+Z1 = zeros(nSubjs,1);
+Z2 = zeros(nSubjs,1);
+for ss = 1:nSubjs
+    Z1(ss) = f1(P(ss,H(ss,:)==1));
+    
+    Z2(ss) = f1(P(ss,M(ss,:)==1));
+    
+    Z3(ss) = f1([P(ss,H(ss,:)==1) -P(ss,M(ss,:)==1)]) ;
+    [P3r(ss),Z3r(ss)] = circ_rtest([P(ss,H(ss,:)==1) -P(ss,M(ss,:)==1)]);
 end
-set(gca,'fontsize',20,'xtick',[0.5:5],'xticklabel',[])
-xlim([0 5])
-ylim([0.2 0.9])
-set(gca,'ytick',[0:0.2:1])
-ylabel(' Hit Rate ')
-set(gca,'LineWidth',2)
-% sinwave (x-axis)
-axes('units','points','position',[100 80 400 50]); hold on;
-xa = linspace(0,2*pi,1000);
-x  = cos(xa);
-plot(xa./pi*180,x,'k','linewidth',4)
-axis tight;
-set(gca,'ytick',[],'ycolor','w','fontsize',20,'box','off','lineWidth',2)
-set(gca,'xtick',[36:72:360])
-xlabel(' Encoding Phase (deg)')
-xlim([-1 361])
-print(gcf, '-dpdf', ['../plots/tacs_enc_xdiva/PhaseRetrieval/' 'HitRateByPhase' SubjSelectStr]);
-
-% Polar Plots for Hit Rate
-z   = f(Z);
-th  = angle(z);
-rho = abs(z);
+% Polar Plots for nHits
+th1  = angle(Z1); th2 = angle(Z2);
+rho1 = abs(Z1);   rho2= abs(Z2);
 
 % with magnitude of modulation
 opts = [];
-opts.colors = greyColor;
+opts.colors = hitColor ;
 opts.markerSize=300;
-PolarPlot(th,rho,opts)
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseRetrieval/' 'HitRatePolarRho' SubjSelectStr])
+PolarPlot(th1,rho1,opts)
+print(gcf,'-dpdf',[plotPath1 'HitProbPolarRho'])
 
 opts = [];
-opts.colors = greyColor;
+opts.colors = hitColor;
+opts.maxR   = 4/3;
+opts.alpha  = 0.8;
+opts.markerSize=300;
+opts.magText    = '';
+PolarPlot(th1,[],opts)
+print(gcf,'-dpdf',[plotPath1 'HitProbPolar'])
+
+[p,r] = circ_rtest(th1);
+th_hat = circ_mean(th1);
+fprintf('Rayleight Test for modulation on Hits across subjects:\n')
+fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
+
+%% misses by phase
+close all
+
+% with magnitude of modulation
+opts = [];
+opts.colors = missColor;
+opts.markerSize=300;
+PolarPlot(th2,rho2,opts)
+print(gcf,'-dpdf',[plotPath1 'MissProbPolarRho'])
+
+opts = [];
+opts.colors = missColor;
 opts.maxR = 4/3;
 opts.alpha = 0.8;
 opts.markerSize=300;
 opts.magText    = '';
-PolarPlot(th,[],opts)
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseRetrieval/' 'HitRatePolar' SubjSelectStr])
+PolarPlot(th2,[],opts)
+print(gcf,'-dpdf',[plotPath1 'MissProbPolar'])
 
-[p,r] = circ_rtest(th);
-th_hat = mod(angle(mean(exp(1j*th))),2*pi)/pi*180;
+[p,r] = circ_rtest(th2);
+fprintf('Rayleight Test for Misses modulation across subjects:\n')
+th_hat = circ_mean(th2);
 fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
 
 %% Hits Misses on Same Polar
 close all
-X = nHitP;
-Y = nMissP;
-missColor = [150 220 220]/255;
-hitColor  = [255 180 150]/255;
-
-% Polar Plots
-z1   = f(X);
-z2   = f(Y);
-th1  = angle(z1);
-rho1 = abs(z1);
-th2  = angle(z2);
-rho2  = abs(z2);
+clc; close all;
+Z1 = zeros(nSubjs,1);
+Z2 = zeros(nSubjs,1);
+for ss = 1:nSubjs
+    Z1(ss) = f1(P(ss,H(ss,:)==1));
+    Z2(ss) = f1(P(ss,M(ss,:)==1));
+    Z1b(ss) = f1b(P(ss,H(ss,:)==1));
+    Z2b(ss) = f1b(P(ss,M(ss,:)==1));
+     [~,R1(ss)] = circ_rtest(P(ss,H(ss,:)==1));
+     [~,R2(ss)] = circ_rtest(P(ss,M(ss,:)==1));
+end
+th1     = angle(Z1);
+rho1    = abs(Z1);
+th2     = angle(Z2);
+rho2    = abs(Z2);
 
 % with magnitude of modulation
 opts = [];
 opts.colors = [hitColor;missColor];
-opts.maxR   = 4;
+%opts.maxR   = 4;
 opts.markerSize=300;
-PolarPlot([th1 th2],[rho1 rho2],opts)
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseRetrieval/' 'HM_PolarRho' SubjSelectStr])
+PolarPlot([th1 th2],[rho1 rho2],opts);
+print(gcf,'-dpdf',[plotPath1 'HM_PolarRho'])
 
 % v2
-z3 = f(X)-f(Y);
+z3 = Z1-Z2;
 th3 = angle(z3); rho3 = abs(z3);
 opts = [];
 opts.colors = [greyColor];
 %opts.maxR   = 4;
 opts.markerSize=300;
-PolarPlot(th3,rho3,opts)
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseRetrieval/' 'H-M_PolarRho' SubjSelectStr])
-
+PolarPlot(th3,rho3,opts);
+print(gcf,'-dpdf',[plotPath1 'H-M_PolarRho'])
 
 opts = [];
 opts.colors = [hitColor;missColor];
@@ -228,42 +230,112 @@ opts.maxR = 4/3;
 opts.alpha = 0.8;
 opts.markerSize=300;
 opts.magText    = '';
-PolarPlot([th1 th2],[],opts)
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseRetrieval/' 'HM_Polar' SubjSelectStr])
+PolarPlot([th1 th2],[],opts);
+print(gcf,'-dpdf',[plotPath1 'HM_Polar'])
 
-[p,r] = circ_rtest(th1-th2);
+opts = [];
+opts.colors = [greyColor];
+opts.maxR = 4/3;
+opts.alpha = 0.8;
+opts.markerSize=300;
+opts.magText    = '';
+PolarPlot([th3],[],opts);
+print(gcf,'-dpdf',[plotPath1 'H-M_Polar'])
+
+[p,r] = circ_rtest(th3);
 fprintf('Rayleight Test for H-M modulation across subjects:\n')
 fprintf('r = %g ; p = %g \n',r,p)
 
-makeLegend(opts.colors,[300 300],{'Hits','Misses'});
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseRetrieval/HitMissLegend']);
+fprintf('RankSum Test for greater modulation across subjects:\n')
+[p,~,k]=signrank(abs(Z1),abs(Z2));
+fprintf('Hits Median = %g; Miss Median = %g; Z = %g ; p = %g \n',median(rho1),median(rho2),k.zval,p)
+
+opts.colors = [hitColor;missColor;greyColor];
+makeLegend(opts.colors,[300 300 300],{'Hits','Misses','H-M'});
+print(gcf,'-dpdf',[plotPath1 'HM_Legend'])
+
+%% Hits-Misses by subject score
+Z3 = zeros(nSubjs,1);
+for ss = 1:nSubjs
+    Z3(ss) = f1([P(ss,H(ss,:)==1) -P(ss,M(ss,:)==1)]) ;
+    [P3r(ss),Z3r(ss)] = circ_rtest([P(ss,H(ss,:)==1) -P(ss,M(ss,:)==1)]);        
+end
+th3 = angle(Z3); rho3 = abs(Z3);
+opts = [];
+opts.colors = [greyColor];
+%opts.maxR   = 4;
+opts.markerSize=300;
+opts.alpha = 0.6;
+PolarPlot(th3,rho3,opts);
+print(gcf,'-dpdf',[plotPath1 'H-M_PolarRho2'])
+
+opts = [];
+opts.colors = [greyColor];
+opts.maxR = 4/3;
+opts.alpha = 0.8;
+opts.markerSize=300;
+opts.magText    = '';
+PolarPlot([th3],[],opts);
+print(gcf,'-dpdf',[plotPath1 'HM_Polar2'])
+
+figure(); clf;
+AR = [450 300];
+set(gcf,'paperpositionmode','auto','color','white')
+set(gcf,'paperUnits','points','papersize',AR,'paperposition',[0 0 AR])
+set(gcf,'position',[200,200,AR])
+a = axes('units','points','position',[50 50 100 200]); hold on;
 
 %% High Confidence vs Low Condidence Hits.
 close all
 
-temp=brewermap(2,'set1');
+temp=brewermap(3,'set1');
 HCcolor = temp(1,:);
 LCcolor = temp(2,:);
+MCcolor = temp(3,:);
 
 % Polar Plots
-z1   = f(nHitP_LC);
-z2   = f(nHitP_HC);
-th1  = angle(z1);
-rho1 = abs(z1);
-th2  = angle(z2);
-rho2  = abs(z2);
+clc; close all;
+Z_H_HC = zeros(nSubjs,1);
+Z_H_MC = zeros(nSubjs,1);
+Z_H_LC = zeros(nSubjs,1);
+Z_H_MLC= zeros(nSubjs,1);
+for ss = 1:nSubjs
+    Z_H_HC(ss)  = f1(P(ss,H(ss,:)==1 & C(ss,:)==3));
+    Z_H_MC(ss)  = f1(P(ss,H(ss,:)==1 & C(ss,:)==2));
+    Z_H_LC(ss)  = f1(P(ss,H(ss,:)==1 & C(ss,:)==1));
+    Z_H_MLC(ss) = f1(P(ss,H(ss,:)==1 & C(ss,:)>=2));
+    Z_LC(ss)    = f1(P(ss,C(ss,:)<=2));
+    
+    [~,R1(ss)] = circ_rtest(P(ss,H(ss,:)==1 & C(ss,:)==3));
+    [~,R2(ss)] = circ_rtest(P(ss,H(ss,:)==1 & C(ss,:)==1));
+    
+    pp = [P(ss,H(ss,:)==1 & C(ss,:)==3) -P(ss,H(ss,:)==1 & C(ss,:)==1)];
+    Z3_H_HC_LC(ss) = f1(pp);
+    pp2 = [P(ss,H(ss,:)==1 & C(ss,:)==3) -P(ss,M(ss,:)==1)];
+    Z3_H_HC_M(ss) = f1(pp2);
+    
+    Z1b(ss) = f1b(P(ss,H(ss,:)==1 & C(ss,:)==3));
+    Z2b(ss) = f1b(P(ss,H(ss,:)==1 & C(ss,:)==1));
+end
+th_H  = angle(Z_H_HC);
+rho_H = abs(Z_H_HC);
+th_M  = angle(Z_H_MC);
+rho_M = abs(Z_H_MC);
+th_L  = angle(Z_H_LC);
+rho_L  = abs(Z_H_LC);
 
 % with magnitude of modulation
 opts = [];
-opts.colors = [LCcolor;HCcolor;];
-opts.maxR   = 4;
+opts.colors = [HCcolor; LCcolor;];
+%opts.maxR   = 4;
 opts.markerSize=300;
 opts.alpha  = 0.5;
-PolarPlot([th1 th2],[rho1 rho2],opts);
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HCLCHits_PolarRho' SubjSelectStr])
+PolarPlot([th_H th_L],[rho_H rho_L],opts);
+%PolarPlot([th_H th_M th_L],[rho_H rho_M rho_L],opts);
+print(gcf,'-dpdf',[plotPath1 'HCLCHits_PolarRho'])
 
 opts = [];
-opts.colors = [LCcolor;HCcolor;];
+opts.colors = [HCcolor;LCcolor;];
 opts.maxR   = 4/3;
 opts.markerSize=300;
 opts.connect = 1;
@@ -271,55 +343,65 @@ opts.meanVecs = 0;
 opts.alpha  = 0.5;
 opts.polarGrid = 0;
 opts.magText   ='';
-PolarPlot([th1 th2],[],opts);
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HCLCHits_PolarRho_v2' SubjSelectStr])
-
+PolarPlot([th_H th_L],[],opts);
+print(gcf,'-dpdf',[plotPath1 'HCLCHits_PolarRho_v2'])
 
 % Projected to the circle
 opts = [];
-opts.colors = [LCcolor;HCcolor;];
+opts.colors = [HCcolor;LCcolor;];
 opts.markerSize=300;
 opts.maxR   = 4/3;
 opts.magText ='';
 opts.alpha  = 0.8;
-PolarPlot([th1 th2],[],opts);
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HCLCHits_Polar' SubjSelectStr])
+PolarPlot([th_H th_L ],[],opts);
+print(gcf,'-dpdf',[plotPath1 'HCLCHits_Polar'])
+
+% all hit types
+opts = [];
+opts.colors = [HCcolor; MCcolor; LCcolor;];
+opts.markerSize = 300;
+opts.maxR       = 4/3;
+opts.magText    = '';
+opts.alpha      = 0.8;
+PolarPlot([th_H th_M th_L ],[],opts);
+print(gcf,'-dpdf',[plotPath1 'HCMCLCHits_Polar'])
 
 % Difference
-z3 = z2-z1;
-th3 = angle(z3);
-rho3 = abs(z3);
+Z3 = Z_H_HC-Z_H_LC;
+th3 = angle(Z3);
+rho3 = abs(Z3);
 
 % with magnitude
 opts = [];
 opts.colors = hitColor;
-opts.maxR   = 4;
+%opts.maxR   = 4;
 opts.markerSize=300;
 opts.alpha  = 0.8;
 PolarPlot(th3,rho3,opts);
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HC-LCHits_PolarRho' SubjSelectStr])
+print(gcf,'-dpdf',[plotPath1 'HC-LCHits_PolarRho'])
 
 % Projected to the circle
 opts.maxR   = 4/3;
 opts.magText ='';
 PolarPlot(th3,[],opts);
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HC-LCHits_Polar' SubjSelectStr])
+print(gcf,'-dpdf',[plotPath1 'HC-LCHits_Polar'])
 
 % HC Hits Stats
-[p,r] = circ_rtest(th1);
-[a,b,c]=circ_mean(th1); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
-th_hat = mod(angle(mean(exp(1j*th1))),2*pi)/pi*180;
-fprintf('Rayleight Test for LC Hits modulation across subjects:\n')
+[p,r] = circ_rtest(th_H);
+[a,b,c]=circ_mean(th_H); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
+th_hat = mod(angle(mean(exp(1j*th_H))),2*pi)/pi*180;
+fprintf('Rayleight Test for HC Hits modulation across subjects:\n')
 fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
 fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',c,b,a)
 
 % LC Hits Stats
-[p,r] = circ_rtest(th2);
-[a,b,c]=circ_mean(th2); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
-th_hat = mod(angle(mean(exp(1j*th2))),2*pi)/pi*180;
-fprintf('Rayleight Test for HC Hits modulation across subjects:\n')
+[p,r] = circ_rtest(th_L);
+[a,b,c]=circ_mean(th_L); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
+th_hat = mod(angle(mean(exp(1j*th_L))),2*pi)/pi*180;
+fprintf('Rayleight Test for LC Hits modulation across subjects:\n')
 fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
 fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',c,b,a)
+
 % HC-LC Hits Stats
 [p,r] = circ_rtest(th3);
 [a,b,c]=circ_mean(th3); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
@@ -329,91 +411,62 @@ fprintf('Rayleight Test for HC-LC Hits modulation across subjects:\n')
 fprintf('angle = %g, r = %g ; p = %g \n',th_hat,r,p)
 fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',c,b,a)
 
+fprintf('RankSum Test for greater modulation across subjects:\n')
+[p,~,k]=signrank(rho_H,rho_L);
+fprintf('HCH Median = %g; LCH Median = %g; Z = %g ; p = %g \n',median(rho_H),median(rho_L),k.zval,p)
+
 makeLegend([LCcolor;HCcolor;hitColor],[300 300 300],{'LC Hits','HC Hits','HC-LC Hits'})
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HCLC_Legend'])
-
-%% HC Hits to all Hits proportion
-z = f(nHitP_HC./nHitP);
-th = angle(z);
-rho = abs(z);
-
-% with magnitude
-opts = [];
-opts.colors = greyColor;
-opts.markerSize=300;
-opts.alpha  = 0.8;
-PolarPlot(th,rho,opts)
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HCH_Prop_PolarRho' SubjSelectStr])
-
-% Projected to the circle
-opts.maxR   = 4/3;
-opts.magText ='';
-PolarPlot(th,[],opts)
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HCH_Prop_Polar' SubjSelectStr])
-
-% HC Hits Prop Stats
-[p,r] = circ_rtest(th);
-th_hat = mod(angle(mean(exp(1j*th))),2*pi)/pi*180;
-fprintf('Rayleight Test for Prp[ Hits modulation across subjects:\n')
-fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
-
-% Relationship to dprime
-d=behav_out.retSummary.dPrime(subjs);
-opts = [];
-opts.alpha = 1;
-opts.colors = greyColor;
-opts.markerSize = 200;
-opts.xlabel = ' \rho ';
-opts.ylabel = ' d'' ' ;
-opts.polyfitN = 1;
-
-opts.text       =['R = ' num2str(round(corr(rho,d,'type','spearman')*100)/100)];
-opts.xytext    = [0.05 0.4];
-han = xyScatter(rho,d,opts);
-fprintf('Correlation of magnitude of modulation with d'' :\n')
-[c,p]=corr(rho,d,'type','spearman');
-fprintf('r = %g ; p = %g \n',c,p)
-
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HCH_PropMagDprimeScatter_' SubjSelectStr])
+print(gcf,'-dpdf',[plotPath1 'HCLC_Legend'])
 
 %% Misses HCvsLC 
 close all; clc;
 temp=brewermap(8,'dark2');
 HCcolor = temp(3,:);
 LCcolor = temp(4,:);
+MCcolor = temp(5,:);
 greyColor2 = [0.25 0.25 0.25];
 
-% LC Misses
-z1 = f(nMissP_LC);
-th1 = angle(z1);
-rho1 = abs(z1);
+% Polar Plots
+clc; close all;
+Z_M_HC = zeros(nSubjs,1);
+Z_M_MC = zeros(nSubjs,1);
+Z_M_LC = zeros(nSubjs,1);
+for ss = 1:nSubjs
+    Z_M_HC(ss) = f1(P(ss,M(ss,:)==1 & C(ss,:)==3));
+    Z_M_MC(ss) = f1(P(ss,M(ss,:)==1 & C(ss,:)==2));
+    Z_M_LC(ss) = f1(P(ss,M(ss,:)==1 & C(ss,:)==1));
+end
 
 % HC Misses
-z2 = f(nMissP_HC);
-th2 = angle(z2);
-rho2 = abs(z2);
+th_M_HC  = angle(Z_M_HC);
+rho_M_HC = abs(Z_M_HC);
+
+% LC Misses
+th_M_LC  = angle(Z_M_LC);
+rho_M_LC = abs(Z_M_LC);
+
 
 % with magnitude of modulation
 opts = [];
-opts.colors = [LCcolor;HCcolor;];
-opts.maxR   = 4;
+opts.colors = [HCcolor;LCcolor;];
+%opts.maxR   = 4;
 opts.markerSize=300;
 opts.alpha  = 0.5;
-PolarPlot([th1 th2],[rho1 rho2],opts);
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HCLCMiss_PolarRho' SubjSelectStr])
+PolarPlot([th_M_HC th_M_LC],[rho_M_HC rho_M_LC],opts);
+print(gcf,'-dpdf',[plotPath1 'HCLCMiss_PolarRho'])
 
 % along the unit circle
 opts = [];
-opts.colors = [LCcolor;HCcolor;];
+opts.colors = [HCcolor; LCcolor;];
 opts.maxR   = 4/3;
 opts.markerSize=300;
 opts.alpha  = 0.8;
 opts.magText = '';
-PolarPlot([th1 th2],[],opts);
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HCLCMiss_Polar' SubjSelectStr])
+PolarPlot([th_M_HC th_M_LC],[],opts);
+print(gcf,'-dpdf',[plotPath1 'HCLCMiss_PolarRho'])
 
 % Difference
-z3 = z2-z1;
+z3 = Z_M_HC-Z_M_LC;
 th3 = angle(z3);
 rho3 = abs(z3);
 opts        =[];
@@ -422,37 +475,24 @@ opts.markerSize=300;
 opts.alpha  = 0.8;
 opts.colors = missColor;
 PolarPlot(th3,rho3,opts);
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HCLCMissRho_Polar' SubjSelectStr])
+print(gcf,'-dpdf',[plotPath1 'HCLCMissRho_Polar'])
 
 % Projected to the circle
 opts.maxR   = 4/3;
 opts.magText ='';
 opts.alpha = 0.8;
 PolarPlot(th3,[],opts);
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HC-LCMiss_Polar' SubjSelectStr])
-
-% Proportion of HC Misses
-z4 = f(nMissP_HC./nMissP);
-th4 = angle(z4);
-rho4 = abs(z4);
-
-% Projected to the circle
-opts.maxR   = 4/3;
-opts.magText ='';
-opts.alpha = 0.8;
-opts.colors = greyColor;
-PolarPlot(th4,[],opts);
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'propHCMisses_Polar' SubjSelectStr])
+print(gcf,'-dpdf',[plotPath1 'HC-LCMiss_Polar'])
 
 % HC Misses Stats
-[p,r] = circ_rtest(th1);
-th_hat = mod(angle(mean(exp(1j*th1))),2*pi)/pi*180;
+[p,r] = circ_rtest(th_M_HC);
+th_hat = mod(angle(mean(exp(1j*th_M_HC))),2*pi)/pi*180;
 fprintf('Rayleight Test for LC Misses modulation across subjects:\n')
 fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
 
 % LC Misses Stats
-[p,r] = circ_rtest(th2);
-th_hat = mod(angle(mean(exp(1j*th2))),2*pi)/pi*180;
+[p,r] = circ_rtest(th_M_LC);
+th_hat = mod(angle(mean(exp(1j*th_M_LC))),2*pi)/pi*180;
 fprintf('Rayleight Test for HC Misses modulation across subjects:\n')
 fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
 
@@ -462,25 +502,23 @@ th_hat = mod(angle(mean(exp(1j*th3))),2*pi)/pi*180;
 fprintf('Rayleight Test for HC-LC Misses modulation across subjects:\n')
 fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
 
-% HC/all Misses Stats
-[p,r] = circ_rtest(th4);
-th_hat = mod(angle(mean(exp(1j*th4))),2*pi)/pi*180;
-fprintf('Rayleight Test for HC/all hits Misses modulation across subjects:\n')
-fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
-
 makeLegend([LCcolor; HCcolor ;missColor],[300 300 300],{'LC Misses','HC Misses','HC-LC Misses'});
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HCLCMiss_Legend'])
+print(gcf,'-dpdf',[plotPath1 'HCLCMiss_Legend'])
 
 %% All Confidence
 close all; clc;
 % confidence independent of memory:
-z1 = f(nConfP_LC); % low
-z2 = f(nConfP_MC); % mid
-z3 = f(nConfP_HC); % mid
-th1 = angle(z1); th2 = angle(z2); th3=angle( z3);
+Z_LC = zeros(nSubjs,1);
+Z_MC = zeros(nSubjs,1);
+Z_HC = zeros(nSubjs,1);
+for ss = 1:nSubjs
+    Z_LC(ss) = f1(P(ss,C(ss,:)==1));
+    Z_MC(ss) = f1(P(ss,C(ss,:)==2));
+    Z_HC(ss) = f1(P(ss,C(ss,:)==3));
+end
+th1 = angle(Z_LC); th2 = angle(Z_MC); th3=angle(Z_HC);
 
 confColors = brewermap(3,'set3');
-
 % all confidence
 opts = [];
 opts.colors = [confColors];
@@ -489,18 +527,17 @@ opts.markerSize=300;
 opts.alpha  = 0.7;
 opts.magText = '';
 PolarPlot([th1 th2 th3],[],opts)
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'allConf_Polar' SubjSelectStr])
+print(gcf,'-dpdf',[plotPath1 'allConf_Polar'])
 
-% proportion of high confidence 
-th = angle(f(nConfP_HC./squeeze(sum(nConfP_C,2))));
+% all confidence
 opts = [];
-opts.colors = greyColor;
-opts.maxR   = 4/3;
+opts.colors = [confColors];
+%opts.maxR   = 4/3;
 opts.markerSize=300;
 opts.alpha  = 0.7;
 opts.magText = '';
-PolarPlot(th,[],opts)
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'propHC_Polar' SubjSelectStr])
+PolarPlot([th1 th2 th3],[rho1 rho2 rho3],opts)
+print(gcf,'-dpdf',[plotPath1 'allConf_PolarRho'])
 
 % Low Conf Stats
 [p,r] = circ_rtest(th1);
@@ -520,61 +557,48 @@ th_hat = mod(angle(mean(exp(1j*th3))),2*pi)/pi*180;
 fprintf('Rayleight Test for HC modulation across subjects:\n')
 fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
 
-% Prop of High Confidence
-% High Conf Stats
-[p,r] = circ_rtest(th);
-th_hat = mod(angle(mean(exp(1j*th))),2*pi)/pi*180;
-fprintf('Rayleight Test for proportion HC modulation across subjects:\n')
-fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
-
 makeLegend([confColors],[300 300 300],{'Low','Mid','High'})
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'Conf_Legend'])
+print(gcf,'-dpdf',[plotPath1 'Conf_Legend'])
 
-%% Splits for HC Hits for Faces and Scenes
+%% Splits for Big and Small Obj
 
 % Get data splits
-nFaceHitsConf = zeros(nSubjs,5,3);
-nFaceHits     = zeros(nSubjs,5);
-nSceneHitsConf = zeros(nSubjs,5,3);
-nSceneHits     = zeros(nSubjs,5);
-for ss = 1:nSubjs
-    s       = subjs(ss);
-    Faces   = squeeze(out.datMat(s,:,1)==1);    
-    Hits    = squeeze(out.datMat(s,:,7)==1);
-    Conf    = squeeze(out.datMat(s,:,9));
-    Phase   = squeeze(out.datMat(s,:,5));   
-    for pp = 1:5
-        trials              = (Faces & Hits) & (Phase==pp);
-        nFaceHits(ss,pp)    = sum(trials);
-        trials              = (~Faces & Hits) & (Phase==pp);
-        nSceneHits(ss,pp)   = sum(trials);
-        for cc = 1:3        
-            trials = (Faces & Hits) & (Conf==cc) & (Phase==pp);
-            nFaceHitsConf(ss,pp,cc) = sum(trials);
-            trials = (~Faces & Hits) & (Conf==cc) & (Phase==pp);
-            nSceneHitsConf(ss,pp,cc) = sum(trials);
-        end        
-    end
+Z_H_SmallBigConf    = zeros(nSubjs,2,3);
+Z_H_SmallBig        = zeros(nSubjs,2);
+Z_M_SmallBigConf    = zeros(nSubjs,2,3);
+Z_M_SmallBig        = zeros(nSubjs,2);
+Ns                  = zeros(nSubjs,2,3,2); % stimtype, conf, hit/miss
+for ss = 1:nSubjs % subjects
+    for st = 1:2 % stimulus type
+        trials1 = (ST(ss,:)==st) & (H(ss,:)==1);
+        Z_H_SmallBig(ss,st) = f1(P(ss,trials1));
+        trials2 = (ST(ss,:)==st) & (M(ss,:)==1);
+        Z_M_SmallBig(ss,st) = f1(P(ss,trials2));
+        for cc = 1:3 % confidence        
+            H_trials = trials1 & (C(ss,:)==cc);
+            M_trials = trials2 & (C(ss,:)==cc);
+            
+            Z_H_SmallBigConf(ss,st,cc) = f1(P(ss,H_trials));
+            Z_M_SmallBigConf(ss,st,cc) = f1(P(ss,M_trials));
+            Ns(ss,st,cc,1) = sum(H_trials);
+            Ns(ss,st,cc,2) = sum(M_trials);
+        end
+    end 
 end
-%% Plots for HC Scene Hits 
+%% Plots for HC Small Hits 
 close all; clc;
-% Polar w Mag Plot of HC vs LC Hit Scenes
-z1  = f(nSceneHitsConf(:,:,1)); % LC
-z2 = f(nSceneHitsConf(:,:,3));  % HC
+% Polar w Mag Plot of HC vs LC Hit Small
+z1  = squeeze(Z_H_SmallBigConf(:,1,1)); %LC 
+z2  = squeeze(Z_H_SmallBigConf(:,1,3)); %HC
 th1 = angle(z1);    th2 = angle(z2);
 rho1= abs(z1);      rho2 = abs(z2);
 
-temp=brewermap(2,'set1');
-HCcolor = temp(1,:);
-LCcolor = temp(2,:);
-
 opts = [];
 opts.colors = [LCcolor;HCcolor;];
-opts.maxR   = 4;
 opts.markerSize=300;
 opts.alpha  = 0.5;
 PolarPlot([th1 th2],[rho1 rho2],opts)
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HCLCSceneHits_PolarRho' SubjSelectStr])
+print(gcf,'-dpdf',[plotPath1 'HCLCSmallHits_PolarRho'])
 
 % Projected to the circle
 opts = [];
@@ -584,77 +608,75 @@ opts.maxR   = 4/3;
 opts.magText ='';
 opts.alpha  = 0.8;
 PolarPlot([th1 th2],[],opts)
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HCLCSceneHits_Polar' SubjSelectStr])
+print(gcf,'-dpdf',[plotPath1 'HCLCSmallHits_Polar'])
 
-% Polar Plot of HC - LC Hit Scenes
+% Polar Plot of HC - LC Hit Small
 z3   = z2-z1;
 th3  = angle(z3);
 rho3 = abs(z3);
 opts        =[];
-opts.maxR   = 4;
 opts.markerSize=300;
 opts.alpha  = 0.8;
-opts.colors = sceneColor;
+opts.colors = SmallColor;
 PolarPlot(th3,rho3,opts);
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HC-LCSceneHits_PolarRho' SubjSelectStr])
+print(gcf,'-dpdf',[plotPath1 'HC-LCSmallHits_PolarRho'])
+
 
 opts        =[];
 opts.maxR   = 4/3;
 opts.markerSize=300;
 opts.magText ='';
-opts.colors = sceneColor;
+opts.colors = SmallColor;
 PolarPlot(th3,[],opts)
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HC-LCSceneHits_Polar' SubjSelectStr])
+print(gcf,'-dpdf',[plotPath1 'HC-LCSmallHits_Polar'])
 
-% HC Hit Scene Stats
+%
+% LC Hit Small Stats
 [p,r] = circ_rtest(th1);
 th_hat = mod(angle(mean(exp(1j*th1))),2*pi)/pi*180;
-fprintf('Rayleight Test for LC Hit Scene modulation across subjects:\n')
+fprintf('Rayleight Test for LC Hit Small modulation across subjects:\n')
 fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
 [a,b,c]=circ_mean(th1); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
 fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',floor(c),ceil(b),round(a))
 
-% LC Hit Scene Stats
+% HC Hit Small Stats
 [p,r] = circ_rtest(th2);
 th_hat = mod(angle(mean(exp(1j*th2))),2*pi)/pi*180;
-fprintf('Rayleight Test for HC Hit Scene modulation across subjects:\n')
+fprintf('Rayleight Test for HC Hit Small modulation across subjects:\n')
 fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
 [a,b,c]=circ_mean(th2); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
 fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',floor(c),ceil(b),round(a))
 
-% HC-LC Hit Scene Stats
+% HC-LC Hit Small Stats
 [p,r] = circ_rtest(th3);
 th_hat = mod(angle(mean(exp(1j*th3))),2*pi)/pi*180;
-fprintf('Rayleight Test for HC-LC Hit Scene modulation across subjects:\n')
+fprintf('Rayleight Test for HC-LC Hit Small modulation across subjects:\n')
 fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
 [a,b,c]=circ_mean(th3); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
 fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',floor(c),ceil(b),round(a))
 
-makeLegend([LCcolor; HCcolor; sceneColor],[300 300 300],{'LC Scn Hits','HC Scn Hits','HC-LC Scn Hits'})
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HCLCScnHits_Legend'])
+makeLegend([LCcolor; HCcolor; SmallColor],[300 300 300],{'LC Scn Hits','HC Scn Hits','HC-LC Scn Hits'})
+print(gcf,'-dpdf',[plotPath1 'HCLCSmallHits_Legend'])
 
-%% Plots for HC Face Hits 
+rho2s = rho2;
+%% Plots for HC Big Hits 
 close all; clc;
-% Polar w Mag Plot of HC vs LC Hit Scenes
-z1  = f(nFaceHitsConf(:,:,1)); % LC
-z2 = f(nFaceHitsConf(:,:,3));  % HC
+% Polar w Mag Plot of HC vs LC Hit Big
+z1  = squeeze(Z_H_SmallBigConf(:,2,1)); %LC
+z2  = squeeze(Z_H_SmallBigConf(:,2,3)); %HC
 th1 = angle(z1);    th2 = angle(z2);
 rho1= abs(z1);      rho2 = abs(z2);
 
-temp=brewermap(2,'set1');
+temp=brewermap(2,'set2');
 HCcolor = temp(1,:);
 LCcolor = temp(2,:);
-FaceColor = [100 200 100]/255;
-colors = [100 200 100;200 100 200]/255;
-txtStr = {'Faces','Scenes'};
 
 opts = [];
 opts.colors = [LCcolor;HCcolor;];
-opts.maxR   = 4;
 opts.markerSize=300;
 opts.alpha  = 0.5;
-PolarPlot([th1 th2],[rho1 rho2],opts);
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HCLCFaceHits_PolarRho' SubjSelectStr])
+PolarPlot([th1 th2],[rho1 rho2],opts)
+print(gcf,'-dpdf',[plotPath1 'HCLCBigHits_PolarRho'])
 
 % Projected to the circle
 opts = [];
@@ -663,57 +685,212 @@ opts.markerSize=300;
 opts.maxR   = 4/3;
 opts.magText ='';
 opts.alpha  = 0.8;
-PolarPlot([th1 th2],[],opts);
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HCLCFaceHits_Polar' SubjSelectStr])
+PolarPlot([th1 th2],[],opts)
+print(gcf,'-dpdf',[plotPath1 'HCLCBigHits_Polar'])
 
-% Polar Plot of HC - LC Hit Faces
+% Polar Plot of HC - LC Hit Big
 z3   = z2-z1;
 th3  = angle(z3);
 rho3 = abs(z3);
 opts        =[];
-opts.maxR   = 4;
 opts.markerSize=300;
 opts.alpha  = 0.8;
-opts.colors = faceColor;
+opts.colors = BigColor;
 PolarPlot(th3,rho3,opts);
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HC-LCFaceHits_PolarRho' SubjSelectStr])
+print(gcf,'-dpdf',[plotPath1 'HC-LCBigHits_PolarRho'])
 
 opts        =[];
 opts.maxR   = 4/3;
 opts.markerSize=300;
 opts.magText ='';
-opts.colors = [faceColor];
-PolarPlot(th3,[],opts);
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HC-LCFaceHits_Polar' SubjSelectStr])
+opts.colors = BigColor;
+PolarPlot(th3,[],opts)
+print(gcf,'-dpdf',[plotPath1 'HC-LCBigHits_Polar'])
 
-% HC Hit Face Stats
+% LC Hit Big Stats
 [p,r] = circ_rtest(th1);
 th_hat = mod(angle(mean(exp(1j*th1))),2*pi)/pi*180;
-fprintf('Rayleight Test for LC Hit Face modulation across subjects:\n')
+fprintf('Rayleight Test for LC Hit Big modulation across subjects:\n')
 fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
 [a,b,c]=circ_mean(th1); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
 fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',floor(c),ceil(b),round(a))
 
-% LC Hit Face Stats
+% HC Hit Big Stats
 [p,r] = circ_rtest(th2);
 th_hat = mod(angle(mean(exp(1j*th2))),2*pi)/pi*180;
-fprintf('Rayleight Test for HC Hit Face modulation across subjects:\n')
+fprintf('Rayleight Test for HC Hit Big modulation across subjects:\n')
 fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
 [a,b,c]=circ_mean(th2); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
 fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',floor(c),ceil(b),round(a))
 
-% HC-LC Hit Face Stats
+% HC-LC Hit Big Stats
 [p,r] = circ_rtest(th3);
 th_hat = mod(angle(mean(exp(1j*th3))),2*pi)/pi*180;
-fprintf('Rayleight Test for HC-LC Hit Face modulation across subjects:\n')
+fprintf('Rayleight Test for HC-LC Hit Big modulation across subjects:\n')
 fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
 [a,b,c]=circ_mean(th3); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
 fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',floor(c),ceil(b),round(a))
 
-makeLegend([LCcolor; HCcolor; faceColor],[300 300 300],{'LC Face Hits','HC Face Hits','HC-LC Face Hits'})
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HCLCFaceHits_Legend'])
+makeLegend([LCcolor; HCcolor; BigColor],[300 300 300],{'LC Scn Hits','HC Scn Hits','HC-LC Scn Hits'})
+print(gcf,'-dpdf',[plotPath1 'HCLCBigHits_Legend'])
 
-%% %% Bootstrap difference between HC and LC Hits;
+makeLegend([HCcolor; LCcolor; BigColor; SmallColor],[300 300 300 300],{'HC Hits','LC Hits','HC-LC Big','HC-LC Small' })
+print(gcf,'-dpdf',[plotPath1 'HCLC_Cat_Hits_Legend'])
+%% Plots for Small Hits vs Misses
+close all; clc;
+% Polar w Mag Plot of Hits vs Misses
+z1  = squeeze(Z_H_SmallBig(:,1)); %LC
+z2  = squeeze(Z_M_SmallBig(:,1)); %HC
+th1 = angle(z1);    th2 = angle(z2);
+rho1= abs(z1);      rho2 = abs(z2);
+
+opts = [];
+opts.colors = [hitColor;missColor;];
+opts.markerSize=300;
+opts.alpha  = 0.8;
+PolarPlot([th1 th2],[rho1 rho2],opts)
+print(gcf,'-dpdf',[plotPath1 'HM_Small_PolarRho'])
+
+% Projected to the circle
+opts = [];
+opts.colors = [hitColor;missColor;];
+opts.markerSize=300;
+opts.maxR   = 4/3;
+opts.magText ='';
+opts.alpha  = 0.8;
+PolarPlot([th1 th2],[],opts)
+print(gcf,'-dpdf',[plotPath1 'HM_Small_Polar'])
+
+% Polar Plot of HC - LC Hit Small
+z3   = z1-z2;
+th3  = angle(z3);
+rho3 = abs(z3);
+opts        =[];
+opts.markerSize=300;
+opts.alpha  = 0.8;
+opts.colors = greyColor;
+PolarPlot(th3,rho3,opts);
+print(gcf,'-dpdf',[plotPath1 'H-M_Small_PolarRho'])
+
+opts        =[];
+opts.maxR   = 4/3;
+opts.markerSize=300;
+opts.magText ='';
+opts.colors = greyColor;
+PolarPlot(th3,[],opts)
+print(gcf,'-dpdf',[plotPath1 'H-M_Small_Polar'])
+
+% Hit Small Stats
+[p,r] = circ_rtest(th1);
+th_hat = mod(angle(mean(exp(1j*th1))),2*pi)/pi*180;
+fprintf('Rayleight Test for Hit Small modulation across subjects:\n')
+fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
+[a,b,c]=circ_mean(th1); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
+fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',floor(c),ceil(b),round(a))
+
+% Miss Small Stats
+[p,r] = circ_rtest(th2);
+th_hat = mod(angle(mean(exp(1j*th2))),2*pi)/pi*180;
+fprintf('Rayleight Test for Miss Small modulation across subjects:\n')
+fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
+[a,b,c]=circ_mean(th2); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
+fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',floor(c),ceil(b),round(a))
+
+% Hit-Miss Small Stats
+[p,r] = circ_rtest(th3);
+th_hat = mod(angle(mean(exp(1j*th3))),2*pi)/pi*180;
+fprintf('Rayleight Test for Hit-Miss Small modulation across subjects:\n')
+fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
+[a,b,c]=circ_mean(th3); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
+fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',floor(c),ceil(b),round(a))
+
+fprintf('(Small )RankSum Test for greater of Hits than Misses modulation across subjects:\n')
+[p,~,k]=signrank(rho1,rho2);
+fprintf('Hits Median = %g; Miss Median = %g; Z = %g ; p = %g \n',median(rho1),median(rho2),k.zval,p)
+rho1s = rho1; rho2s = rho2;
+%% Plots for Big Hits vs Misses
+close all; clc;
+% Polar w Mag Plot of Hits vs Misses
+z1  = squeeze(Z_H_SmallBig(:,2)); %LC
+z2  = squeeze(Z_M_SmallBig(:,2)); %HC
+th1 = angle(z1);    th2 = angle(z2);
+rho1= abs(z1);      rho2 = abs(z2);
+
+opts = [];
+opts.colors = [hitColor;missColor;];
+opts.markerSize=300;
+opts.alpha  = 0.8;
+PolarPlot([th1 th2],[rho1 rho2],opts)
+print(gcf,'-dpdf',[plotPath1 'HM_Big_PolarRho'])
+
+% Projected to the circle
+opts = [];
+opts.colors = [hitColor;missColor;];
+opts.markerSize=300;
+opts.maxR   = 4/3;
+opts.magText ='';
+opts.alpha  = 0.8;
+PolarPlot([th1 th2],[],opts)
+print(gcf,'-dpdf',[plotPath1 'HM_Big_Polar'])
+
+% Polar Plot of HC - LC Hit Big
+z3   = z1-z2;
+th3  = angle(z3);
+rho3 = abs(z3);
+opts        =[];
+opts.markerSize=300;
+opts.alpha  = 0.8;
+opts.colors = greyColor;
+PolarPlot(th3,rho3,opts);
+print(gcf,'-dpdf',[plotPath1 'H-M_Big_PolarRho'])
+
+opts        =[];
+opts.maxR   = 4/3;
+opts.markerSize=300;
+opts.magText ='';
+opts.colors = greyColor;
+PolarPlot(th3,[],opts)
+print(gcf,'-dpdf',[plotPath1 'H-M_Big_Polar'])
+
+% Hit Big Stats
+[p,r] = circ_rtest(th1);
+th_hat = mod(angle(mean(exp(1j*th1))),2*pi)/pi*180;
+fprintf('Rayleight Test for Hit Big modulation across subjects:\n')
+fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
+[a,b,c]=circ_mean(th1); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
+fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',floor(c),ceil(b),round(a))
+
+% Miss Big Stats
+[p,r] = circ_rtest(th2);
+th_hat = mod(angle(mean(exp(1j*th2))),2*pi)/pi*180;
+fprintf('Rayleight Test for Miss Big modulation across subjects:\n')
+fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
+[a,b,c]=circ_mean(th2); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
+fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',floor(c),ceil(b),round(a))
+
+% Hit-Miss Big Stats
+[p,r] = circ_rtest(th3);
+th_hat = mod(angle(mean(exp(1j*th3))),2*pi)/pi*180;
+fprintf('Rayleight Test for Hit-Miss Big modulation across subjects:\n')
+fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
+[a,b,c]=circ_mean(th3); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
+fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',floor(c),ceil(b),round(a))
+
+fprintf('(Big )RankSum Test for greater of Hits than Misses modulation across subjects:\n')
+[p,~,k]=signrank(rho1,rho2);
+fprintf('Hits Median = %g; Miss Median = %g; Z = %g ; p = %g \n',median(rho1),median(rho2),k.zval,p)
+
+fprintf('(RankSum Test for greater Small Hits than Big hits modulation across subjects:\n')
+[p,~,k]=signrank(rho1s,rho1);
+fprintf('Small Hits = %g; Big Hits = %g; Z = %g ; p = %g \n',median(rho1s),median(rho1),k.zval,p)
+
+
+makeLegend([hitColor; missColor; BigColor],[300 300 300],{'Hits','Miss','H-M'})
+print(gcf,'-dpdf',[plotPath1 'HMBig_Legend'])
+
+makeLegend([hitColor; missColor; greyColor],[300 300 300],{'Hits','Misses','H-M'})
+print(gcf,'-dpdf',[plotPath1 'HM_Legend'])
+%% Bootstrap difference between Hits and Misses;
 close all; clc; rng(1)
 
 nBoot = 1000;
@@ -721,9 +898,13 @@ lowerB = round(nBoot*0.024);
 upperB = round(nBoot*0.976);
 
 % both categories
-z1  = f(nHitP_LC); % LC
-z2 = f(nHitP_HC);  % HC
-th1 = mod(angle(z1),2*pi);    th2 = mod(angle(z2),2*pi);
+for ss = 1:nSubjs
+    Z1(ss) = f1(P(ss,H(ss,:)==1));
+    Z2(ss) = f1(P(ss,M(ss,:)==1));
+end
+th1     = mod(angle(Z1),2*pi);
+th2     = mod(angle(Z2),2*pi);
+
 B = bootstrp(nBoot,deltaTh,th1,th2);
 medianB = circ_median(B);
 [sB,i]=sort(B-medianB);
@@ -743,12 +924,11 @@ for jj = 1:2
     plot([0 x],[0 y],'linewidth',5,'color',greyColor)    
 end
 
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HC-LCHitsBoot_Polar' SubjSelectStr])
+print(gcf,'-dpdf',[plotPath1 'Hits-MissBoot_Polar'])
 %
-
-% Faces
-z1  = f(nFaceHitsConf(:,:,1)); % LC
-z2 = f(nFaceHitsConf(:,:,3));  % HC
+% Small
+z1  = Z_H_SmallBig(:,1); % Hits
+z2 = Z_M_SmallBig(:,1);  % Miss
 th1 = mod(angle(z1),2*pi);    th2 = mod(angle(z2),2*pi);
 B = bootstrp(nBoot,deltaTh,th1,th2);
 medianB = circ_median(B);
@@ -761,19 +941,20 @@ opts.markerSize=50;
 opts.alpha = 0.3;
 opts.magText ='';
 opts.meanVecs = 1;
-opts.colors = faceColor;
+opts.colors = SmallColor;
 PolarPlot(B,1+0.05*randn(nBoot,1),opts)   
 for jj = 1:2
     x = 1.2*cos(bounds(jj));
     y = 1.2*sin(bounds(jj));
     plot([0 x],[0 y],'linewidth',5,'color',greyColor)    
 end
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HC-LCFaceHitsBoot_Polar' SubjSelectStr])
+print(gcf,'-dpdf',[plotPath1 'Hit-MissSmallBoot_Polar'])
 
-% Scenes
+% Big
 % Polar w Mag Plot of HC vs LC Hit Scenes
-z1  = f(nSceneHitsConf(:,:,1)); % LC
-z2 = f(nSceneHitsConf(:,:,3));  % HC
+z1  = Z_H_SmallBig(:,2); % Hits
+z2 = Z_M_SmallBig(:,2);  % Miss
+
 th1 = mod(angle(z1),2*pi);    th2 = mod(angle(z2),2*pi);
 B = bootstrp(nBoot,deltaTh,th1,th2);
 medianB = circ_median(B);
@@ -786,84 +967,67 @@ opts.markerSize=50;
 opts.alpha = 0.3;
 opts.magText ='';
 opts.meanVecs = 1;
-opts.colors = sceneColor;
+opts.colors = BigColor;
 PolarPlot(B,1+0.05*randn(nBoot,1),opts)   
 for jj = 1:2
     x = 1.2*cos(bounds(jj));
     y = 1.2*sin(bounds(jj));
     plot([0 x],[0 y],'linewidth',5,'color',greyColor)    
 end
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HC-LCSceneHitsBoot_Polar' SubjSelectStr])
+print(gcf,'-dpdf',[plotPath1 'Hit-MissBigBoot_Polar'])
 
-makeLegend([hitColor; sceneColor; faceColor],[300 300 300],{'All Hits','Scene Hits','Face Hits'})
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'allHits_Legend'])
+makeLegend([hitColor; SmallColor; BigColor],[300 300 300],{'All','Small ','Big'})
+print(gcf,'-dpdf',[plotPath1 'All_SmBig_Legend'])
 
-%% Retrieval RT Modulation
+ %% Retrieval RT Modulation
 % Get data splits
-meRTsHits           = zeros(nSubjs,5);
-meRTsHitsConf       = zeros(nSubjs,5,3);
-meRTsFaceHitsConf   = zeros(nSubjs,5,3);
-meRTsFaceHits       = zeros(nSubjs,5);
-meRTsSceneHitsConf   = zeros(nSubjs,5,3);
-meRTsSceneHits     = zeros(nSubjs,5);
-for ss = 1:nSubjs
-    s       = subjs(ss);
-    RTs     = -log(squeeze(out.datMat(subjs,:,11)));
-    Faces   = squeeze(out.datMat(s,:,1)==1);    
-    Hits    = squeeze(out.datMat(s,:,7)==1);
-    Conf    = squeeze(out.datMat(s,:,9));
-    Phase   = squeeze(out.datMat(s,:,5));   
-    for pp = 1:5
-        % all hits
-        trials              = (Hits) & (Phase==pp);
-        meRTsHits(ss,pp)    = nanmedian(RTs(trials));
-        % face hits
-        trials              = (Faces & Hits) & (Phase==pp);        
-        meRTsFaceHits(ss,pp)    = nanmedian(RTs(trials));
-        % scene hits
-        trials              = (~Faces) & Hits & (Phase==pp);        
-        meRTsSceneHits(ss,pp)    = nanmedian(RTs(trials));
-        for cc = 1:3
-            % all hits
-            trials = Hits & (Conf==cc) & (Phase==pp);
-            meRTsHitsConf(ss,pp,cc)    = nanmedian(RTs(trials));
-            % face hits
-            trials = (Faces & Hits) & (Conf==cc) & (Phase==pp);
-            meRTsFaceHitsConf(ss,pp,cc) = nanmedian(RTs(trials));
-            % scene hits
-            trials = (~Faces & Hits) & (Conf==cc) & (Phase==pp);
-            meRTsSceneHitsConf(ss,pp,cc) = nanmedian(RTs(trials));
-        end        
+ZR_H                = zeros(nSubjs,1);
+ZR_M                = zeros(nSubjs,1);
+ZR_H_Conf           = zeros(nSubjs,3);
+ZR_M_Conf           =zeros(nSubjs,3);
+ZR_H_SmallBigConf    = zeros(nSubjs,2,3);
+ZR_H_SmallBig        = zeros(nSubjs,2);
+ZR_M_SmallBigConf    = zeros(nSubjs,2,3);
+ZR_M_SmallBig        = zeros(nSubjs,2);
+Ns                  = zeros(nSubjs,2,3,2); % stimtype, conf, hit/miss
+for ss = 1:nSubjs % subjects
+    ZR_H(ss) = f2(P(ss,H(ss,:)==1),RR(ss,H(ss,:)==1));
+    ZR_M(ss) = f2(P(ss,M(ss,:)==1),RR(ss,M(ss,:)==1));
+    for st = 1:2 % stimulus type
+        trials1 = (ST(ss,:)==st) & (H(ss,:)==1);
+        ZR_H_SmallBig(ss,st) = f2(P(ss,trials1),RR(ss,trials1));
+        trials2 = (ST(ss,:)==st) & (M(ss,:)==1);
+        ZR_M_SmallBig(ss,st) = f2(P(ss,trials2),RR(ss,trials2));
+        for cc = 1:3 % confidence        
+            H_trials = trials1 & (C(ss,:)==cc);
+            M_trials = trials2 & (C(ss,:)==cc);
+            
+            ZR_H_SmallBigConf(ss,st,cc) = f2(P(ss,H_trials),RR(ss,H_trials));
+            ZR_M_SmallBigConf(ss,st,cc) = f2(P(ss,M_trials),RR(ss,M_trials));
+        end
+    end
+    for cc = 1:3
+       trials1 = (H(ss,:)==1) & (C(ss,:)==cc);
+       trials2 = (M(ss,:)==1) & (C(ss,:)==cc);
+       ZR_H_Conf(ss,cc) = f2(P(ss,trials1),RR(ss,trials1)); 
+       ZR_M_Conf(ss,cc) = f2(P(ss,trials2),RR(ss,trials2)); 
     end
 end
+%% RT Hit Misses
 
-% rows-> hits, face hits, scene hits
-% columns -> all hits, HC and LC projected, HC-LC
+% rows-> hits, big hits, small hits
+% columns -> hits/misses, hits/misses projected, hits-misses projected
 
 % create data structure for easy iteration by row
-X = cell(3,2);
-X{1,1} = f(meRTsHits);      X{1,2} = [f(meRTsHitsConf(:,:,1))     f(meRTsHitsConf(:,:,3))];
-X{2,1} = f(meRTsFaceHits);  X{2,2} = [f(meRTsFaceHitsConf(:,:,1)) f(meRTsFaceHitsConf(:,:,3))];
-X{3,1} = f(meRTsSceneHits); X{3,2} = [f(meRTsSceneHitsConf(:,:,1)) f(meRTsSceneHitsConf(:,:,3))];
+X = cell(3,1);
+X{1} = [ZR_H ZR_M];               
+X{2} = [ZR_H_SmallBig(:,2) ZR_M_SmallBig(:,2)];     
+X{3} = [ZR_H_SmallBig(:,1) ZR_M_SmallBig(:,1)]; 
 Y = cell(3,3);
 for ii = 1:3    
-    Y{ii,1} = angle(X{ii,1});
-    Y{ii,2} = [angle(X{ii,2}(:,1)) angle(X{ii,2}(:,2))];
-    Y{ii,3} = angle( X{ii,2}(:,2)-X{ii,2}(:,1) );     
-end
-
-% compute statistics for hits, and hc-lc hits
-P = zeros(3,2); R = zeros(3,2);
-strs1 = {'hits', 'face hits', 'scene hits'};
-strs2 = {'', 'HC-LC'};
-for ii = 1:3
-    cnt = 1;
-    for jj = [1 3]
-        [P(ii,cnt),R(ii,cnt)]=circ_rtest(Y{ii,jj});                
-        fprintf(['Rayleight Test for %s %s modulation across subjects:\n'],strs2{cnt},strs1{ii})
-        fprintf('r = %g ; p = %g \n',R(ii,cnt),P(ii,cnt))
-        cnt = cnt +1;        
-    end
+    Y{ii,1} = [angle(X{ii}) abs(X{ii,1})];
+    Y{ii,2} = angle([X{ii}]);
+    Y{ii,3} = angle([X{ii}(:,1)-X{ii}(:,2)]);     
 end
 
 % create 3x3 figure: 
@@ -886,25 +1050,183 @@ for ii = 3:-1:1
     jjPixCnt = jjPixCnt+dxy+axDims;
 end
 
-colors = cell(3,3);
-colors{1,1} = hitColor;     colors{1,3} = greyColor;
-colors{2,1} = faceColor;    colors{2,3} = greyColor;
-colors{3,1} = sceneColor;   colors{3,3} = greyColor;
-colors{1,2} = [LCcolor; HCcolor]; colors{2,2} = [LCcolor; HCcolor]; colors{3,2} = [LCcolor; HCcolor];
+colors = cell(2,1);
+colors{1} = [hitColor;missColor];  
+colors{2} = greyColor;
 
-opts            =[];
-opts.maxR       = 4/3;
-opts.markerSize = 150;
-opts.alpha      = 0.7;
-opts.magText    ='';
 for ii = 1:3
+    opts            =[];
+    opts.markerSize = 150;
+    opts.alpha      = 0.7;    
     for jj = 1:3
         opts.handle = axHan{ii,jj};
-        opts.colors = colors{ii,jj};
-        PolarPlot(Y{ii,jj},[],opts);
+        if jj==3
+            opts.colors = colors{2};
+        else
+            opts.colors = colors{1};
+        end
+        
+        if jj ==1;            
+            PolarPlot(Y{ii,jj}(:,1:2),Y{ii,jj}(:,3:4),opts);            
+        else
+            opts.magText    ='';
+            opts.maxR       = 4/3;
+            PolarPlot(Y{ii,jj},[],opts);            
+        end
     end
 end
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'RTsHits_Polar' SubjSelectStr])
-makeLegend([greyColor],[300 300 300],{'HC-LC Hits'})
-print(gcf,'-dpdf',['../plots/tacs_enc_xdiva/PhaseConfRetrieval/' 'HC-LCHitsGrey_Legend'])
+
+print(gcf,'-dpdf',[plotPath1 'HM_RT_Phase'])
+% Hit Stats
+th_H = angle(X{1}(:,1)); th_M=angle(X{1}(:,2));
+[p,r] = circ_rtest(th_H);
+th_hat = mod(angle(mean(exp(1j*th_H))),2*pi)/pi*180;
+fprintf('Rayleight Test for Hit RT modulation across subjects:\n')
+fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
+[a,b,c]=circ_mean(th_H); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
+fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',floor(c),ceil(b),round(a))
+
+% Miss Stats
+[p,r] = circ_rtest(th_M);
+th_hat = mod(angle(mean(exp(1j*th_M))),2*pi)/pi*180;
+fprintf('Rayleight Test for Miss RT modulation across subjects:\n')
+fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
+[a,b,c]=circ_mean(th_M); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
+fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',floor(c),ceil(b),round(a))
+
+% H-M
+ th3= Y{1,3} ;
+ [p,r] = circ_rtest(th3);
+th_hat = circ_mean(th3);
+fprintf('Rayleight Test for Hit-Miss RT modulation across subjects:\n')
+fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
+[a,b,c]=circ_mean(th3); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
+fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',floor(c),ceil(b),round(a))
+
+% H-M Big
+ th3= Y{2,3} ;
+ [p,r] = circ_rtest(th3);
+th_hat = circ_mean(th3);
+fprintf('Rayleight Test for Big Hit-Miss RT modulation across subjects:\n')
+fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
+[a,b,c]=circ_mean(th3); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
+fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',floor(c),ceil(b),round(a))
+% H-M Small
+ th3= Y{3,3} ;
+ [p,r] = circ_rtest(th3);
+th_hat = circ_mean(th3);
+fprintf('Rayleight Test for Small Hit-Miss RT modulation across subjects:\n')
+fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
+[a,b,c]=circ_mean(th3); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
+fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',floor(c),ceil(b),round(a))
+
+%
+makeLegend([hitColor;missColor;greyColor],[300 300 300],{'Hits','Misses','H-M'})
+print(gcf,'-dpdf',[plotPath1 'HM_Legend2'])
+makeLegend([HCcolor;LCcolor;greyColor],[300 300 300],{'HC Hits','LC Hits','HC-LC'})
+print(gcf,'-dpdf',[plotPath1 'HCLC_Legend2'])
+%% RT HC -LC Hits
+X = cell(3,1);
+X{1} = [ZR_H_Conf(:,3) ZR_H_Conf(:,1) ];               
+X{2} = [ZR_H_SmallBigConf(:,2,3) ZR_M_SmallBigConf(:,2,1)];     
+X{3} = [ZR_H_SmallBigConf(:,1,3) ZR_M_SmallBigConf(:,1,1)]; 
+Y = cell(3,3);
+for ii = 1:3    
+    Y{ii,1} = [angle(X{ii}) abs(X{ii,1})];
+    Y{ii,2} = angle([X{ii}]);
+    Y{ii,3} = angle([X{ii}(:,1)-X{ii}(:,2)]);     
+end
+
+close all
+han=figure(1); clf;
+Dims = [550 550];
+set(gcf,'paperpositionmode','auto','color','white')
+set(gcf,'paperUnits','points','papersize',Dims,'paperposition',[0 0 Dims])
+set(gcf,'position',[300,100,Dims])
+
+dxy = 50; margins = 0; axDims = 150;
+iiPixCnt = margins; jjPixCnt = margins;
+axHan    = cell(3,3);
+for ii = 3:-1:1 
+    for jj = 1:3        
+        axHan{ii,jj}=axes('units','points','position',[iiPixCnt,jjPixCnt,axDims,axDims]);
+        iiPixCnt = iiPixCnt+dxy+axDims;
+    end
+    iiPixCnt = margins;
+    jjPixCnt = jjPixCnt+dxy+axDims;
+end
+
+colors = cell(2,1);
+colors{1} = [HCcolor;LCcolor];  
+colors{2} = greyColor;
+
+
+for ii = 1:3
+    opts            =[];
+    opts.markerSize = 150;
+    opts.alpha      = 0.7;    
+    for jj = 1:3
+        opts.handle = axHan{ii,jj};
+        if jj==3
+            opts.colors = colors{2};
+        else
+            opts.colors = colors{1};
+        end
+        
+        if jj ==1;            
+            PolarPlot(Y{ii,jj}(:,1:2),Y{ii,jj}(:,3:4),opts);            
+        else
+            opts.magText    ='';
+            opts.maxR       = 4/3;
+            PolarPlot(Y{ii,jj},[],opts);            
+        end
+    end
+end
+print(gcf,'-dpdf',[plotPath1 'HCLCHits_RT_Phase'])
+
+% HC H Stats
+th_H = angle(X{1}(:,1)); th_L=angle(X{1}(:,2)); 
+[p,r] = circ_rtest(th_H);
+th_hat = circ_mean(th_H);
+fprintf('Rayleight Test for HC Hit RT modulation across subjects:\n')
+fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
+[a,b,c]=circ_mean(th_H); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
+fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',floor(c),ceil(b),round(a))
+
+% LC H Stats
+[p,r] = circ_rtest(th_L);
+th_hat = circ_mean(th_L);
+fprintf('Rayleight Test for LC Hit RT modulation across subjects:\n')
+fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
+[a,b,c]=circ_mean(th_L); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
+fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',floor(c),ceil(b),round(a))
+
+% HC-LC H Stats
+th3= Y{1,3};
+[p,r] = circ_rtest(th3);
+th_hat = circ_mean(th3);
+fprintf('Rayleight Test for HC-LC Hit RT modulation across subjects:\n')
+fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
+[a,b,c]=circ_mean(th3); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
+fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',floor(c),ceil(b),round(a))
+
+% HC-LC H Big Stats
+th3= Y{2,3}; 
+th3(isnan(th3))=[];
+[p,r] = circ_rtest(th3);
+th_hat = circ_mean(th3);
+fprintf('Rayleight Test for HC-LC Big Hit RT modulation across subjects:\n')
+fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
+[a,b,c]=circ_mean(th3); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
+fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',floor(c),ceil(b),round(a))
+
+% HC-LC H Big Stats
+th3= Y{3,3};
+[p,r] = circ_rtest(th3);
+th_hat = circ_mean(th3);
+fprintf('Rayleight Test for  HC-LC Small Hit RT modulation across subjects:\n')
+fprintf(' angle = %g, r = %g ; p = %g \n',th_hat,r,p)
+[a,b,c]=circ_mean(th3); a = mod(a*180/pi,360); b = mod(b*180/pi,360); c= mod(c*180/pi,360);
+fprintf('lower bound = %g, upper bound = %g ; mean = %g \n',floor(c),ceil(b),round(a))
+
 

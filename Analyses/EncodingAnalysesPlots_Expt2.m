@@ -8,20 +8,25 @@ plotPath    = '~/Google Drive/Research/tACS/tACS_ER_task/plots/tacs_er_objstim/E
 load([dataPath 'Summary/BehavSummary.mat'])
 load([dataPath 'Summary/DataMatrix.mat'])
 
-% Exclusion of subjects based on poor behavioral performance
-badSubjs =  [3 6];
+% Exclusion of subjects based on poor behavioral performance or no
+% entrainment
+badSubjs =  [3 6 8 27 29 32 34];
 
-nTotalSubjs      = 22;
+nTotalSubjs      = 37;
 subjs           = setdiff(1:nTotalSubjs,badSubjs);
 nSubjs          = numel(subjs);
 
-f = @(th)(mean(exp(1j*th)));
-f2 = @(th,mag)(mean(mag.*exp(1j*th)));
+f = @(th)(nansum(exp(1j*th)));
+f2 = @(th,mag)(nanmean(mag.*exp(1j*th)));
 temp= brewermap(6,'accent');
 SmallColor  = temp(5,:);
 BigColor    = temp(6,:);
 greyColor = [119,136,153]/255;
 
+PhasesCol       = 4;
+CorrectRespCol  = 2;
+StimTypeCol     = 1; 
+EncRTsCol       = 3;
 %% Encoding Results: Categorization Task
 rng(1); % for location reproducibility
 HR = [ behav_out.encSummary.meanAcc(subjs) behav_out.encSummary.SmallHR(subjs) behav_out.encSummary.BigHR(subjs)]*100;
@@ -90,8 +95,6 @@ print(gcf,'-dpdf',[plotPath 'CategorizationPerf'])
 
 %% Categorization by Phase
 rng(1); % for location reproducibility
-PhasesCol       = 4;
-CorrectRespCol  = 2;
 
 % Modulation by Correct Responses
 Z =zeros(nSubjs,1);
@@ -100,6 +103,7 @@ for ss = 1:nSubjs
     trials = out.datMat(s,:,CorrectRespCol)==1;
     phases = out.datMat(s,:,PhasesCol);
     Z(ss) = f(phases(trials));
+    [~,R(ss)] = circ_rtest(phases(trials));
 end
 
 th  = angle(Z);
@@ -126,12 +130,9 @@ print(gcf,'-dpdf',[plotPath 'CategorizationPerfByPhasePolar'])
 [p,r] = circ_rtest(th);
 fprintf('Rayleight Test for modulation across subjects:\n')
 fprintf('p=%g ; r = %g \n',p,r)
-
+circ_mean(th)*180/pi
 %% Categorization By Phase / Stim Type
 close all; rng(1); % for location reproducibility
-PhasesCol       = 4;
-CorrectRespCol  = 2;
-StimTypeCol     = 1;  
 
 % Modulation by Correct Responses
 Z1 =zeros(nSubjs,1);
@@ -154,7 +155,7 @@ th2 = angle(Z2); rho2 = abs(Z2);
 % Polar w magnitude
 opts = [];
 opts.colors = [SmallColor; BigColor];
-opts.alpha = 0.8;
+opts.alpha = 0.4;
 opts.markerSize=300;
 PolarPlot([th1 th2],[rho1 rho2],opts)
 print(gcf,'-dpdf',[plotPath 'EncPerfByCategoryPolarRho'])
@@ -241,9 +242,9 @@ s.MarkerEdgeColor = [119,136,153]/255;
 s.MarkerFaceColor = [119,136,153]/255;
 
 set(gca,'fontsize',20,'xtick',[])
-ylim([0.5 1])
+ylim([0.4 1.21])
 xlim([0 1])
-set(gca,'ytick',[0.5:0.2:1])
+set(gca,'ytick',[0.4:0.2:1.2])
 ylabel(' RTs (s) ')
 set(gca,'LineWidth',2)
 
@@ -272,22 +273,18 @@ s.MarkerFaceAlpha   = 0.5;
 s.MarkerEdgeAlpha   = 0;
 s.SizeData          = 120;
 s.MarkerEdgeColor   = BigColor;
-s.MarkerFaceColor   = [200 100 200]/255;
+s.MarkerFaceColor   = BigColor;
 
 xlim([-0.1 2.1])
-ylim([0.5 1])
+ylim([0.4 1.21])
 set(gca,'fontsize',20,'xtick',[0.5 1.5],'xticklabel',{'Small','Big'})
-set(gca,'ytick',[0.5:0.2:1])
+set(gca,'ytick',[0.4:0.2:1.2])
 set(gca,'LineWidth',2)
 print(gcf,'-dpdf',[plotPath 'EncRTs'])
 
 %% Categorization RTs by Phase
 close all;
 rng(1); % for location reproducibility
-
-PhasesCol       = 4;
-CorrectRespCol  = 2;
-EncRTsCol       = 3;
 
 % Modulation by Correct Responses
 Z  = zeros(nSubjs,1);
@@ -353,7 +350,7 @@ th2 = angle(Z2); rho2 = abs(Z2);
 % Polar w magnitude
 opts = [];
 opts.colors = [SmallColor; BigColor];
-opts.alpha = 0.8;
+opts.alpha = 0.4;
 opts.markerSize=300;
 PolarPlot([th1 th2],[rho1 rho2],opts)
 print(gcf,'-dpdf',[plotPath 'EncRTsByCategoryPolarRho'])

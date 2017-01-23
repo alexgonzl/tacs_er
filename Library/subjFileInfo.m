@@ -216,6 +216,96 @@ switch expt
                 out.eegEncodingFileName     = '20161023125554_s22_enc.easy';
                 out.eegRetrievalInfoFileName= '20161023132233_s22_ret.info';
                 out.eegRetrievalFileName    = '20161023132233_s22_ret.easy';
+            case 23
+                out.infoStimFileName        = '20161027160939_s23_enc.info';
+                out.stimulationFileName     = '20161027160626_s23_enc.stim';
+                out.eegEncodingFileName     = '20161027160939_s23_enc.easy';
+                out.eegRetrievalInfoFileName= '20161027163429_s23_ret.info';
+                out.eegRetrievalFileName    = '20161027163429_s23_ret.easy';
+            case 24
+                out.infoStimFileName        = '20161029124508_s24_enc.info';
+                out.stimulationFileName     = '20161029124313_s24_enc.stim';
+                out.eegEncodingFileName     = '20161029124508_s24_enc.easy';
+                out.eegRetrievalInfoFileName= '20161029131149_s24_ret.info';
+                out.eegRetrievalFileName    = '20161029131149_s24_ret.easy';
+            case 25
+                out.infoStimFileName        = '20161029151715_s25_enc.info';
+                out.stimulationFileName     = '20161029151448_s25_enc.stim';
+                out.eegEncodingFileName     = '20161029151715_s25_enc.easy';
+                out.eegRetrievalInfoFileName= '20161029154321_s25_ret.info';
+                out.eegRetrievalFileName    = '20161029154321_s25_ret.easy';
+            case 26
+                out.infoStimFileName        = '20161120103658_s26_enc.info';
+                out.stimulationFileName     = '20161120103451_s26_enc.stim';
+                out.eegEncodingFileName     = '20161120103658_s26_enc.easy';
+                out.eegRetrievalInfoFileName= '20161120110242_s26_ret.info';
+                out.eegRetrievalFileName    = '20161120110242_s26_ret.easy';
+            case 27
+                out.infoStimFileName        = '20161120124713_s27_enc.info';
+                out.stimulationFileName     = '20161120124501_s27_enc.stim';
+                out.eegEncodingFileName     = '20161120124713_s27_enc.easy';
+                out.eegRetrievalInfoFileName= '20161120131356_s27_ret.info';
+                out.eegRetrievalFileName    = '20161120131356_s27_ret.easy';
+            case 28
+                out.infoStimFileName        = '20161121094552_s28_enc.info';
+                out.stimulationFileName     = '20161121094300_s28_enc.stim';
+                out.eegEncodingFileName     = '20161121094552_s28_enc.easy';
+                out.eegRetrievalInfoFileName= '20161121101053_s28_ret.info';
+                out.eegRetrievalFileName    = '20161121101053_s28_ret.easy';
+            case 29
+                out.infoStimFileName        = '20161121140358_s29_enc.info';
+                out.stimulationFileName     = '20161121140148_s29_enc.stim';
+                out.eegEncodingFileName     = '20161121140358_s29_enc.easy';
+                out.eegRetrievalInfoFileName= '20161121142834_s29_ret.info';
+                out.eegRetrievalFileName    = '20161121142834_s29_ret.easy';
+            case 30
+                out.infoStimFileName        = '20161121161230_s30_enc.info';
+                out.stimulationFileName     = '20161121161012_s30_enc.stim';
+                out.eegEncodingFileName     = '20161121161230_s30_enc.easy';
+                out.eegRetrievalInfoFileName= '20161121163640_s30_ret.info';
+                out.eegRetrievalFileName    = '20161121163640_s30_ret.easy';
+            case 31
+                out.infoStimFileName        = '20161121182114_s31_enc.info';
+                out.stimulationFileName     = '20161121181906_s31_enc.stim';
+                out.eegEncodingFileName     = '20161121182114_s31_enc.easy';
+                out.eegRetrievalInfoFileName= '20161121184518_s31_ret.info';
+                out.eegRetrievalFileName    = '20161121184518_s31_ret.easy';
+            case 32
+                out.infoStimFileName        = '20161122120046_s32_enc.info';
+                out.stimulationFileName     = '20161122115750_s32_enc.stim';
+                out.eegEncodingFileName     = '20161122120046_s32_enc.easy';
+                out.eegRetrievalInfoFileName= '20161122122703_s32_ret.info';
+                out.eegRetrievalFileName    = '20161122122703_s32_ret.easy';
+            case 33
+                out.infoStimFileName        = '20161129140416_s33_enc.info';
+                out.stimulationFileName     = '20161129140200_s33_enc.stim';
+                out.eegEncodingFileName     = '20161129140416_s33_enc.easy';
+                out.eegRetrievalInfoFileName= '20161129142923_s33_ret.info';
+                out.eegRetrievalFileName    = '20161129142923_s33_ret.easy';
+            case 34
+                out.infoStimFileName        = '20161129161533_s34_enc.info';
+                out.stimulationFileName     = '20161129161332_s34_enc.stim';
+                out.eegEncodingFileName     = '20161129161533_s34_enc.easy';
+                out.eegRetrievalInfoFileName= '20161129164332_s34_ret.info';
+                out.eegRetrievalFileName    = '20161129164332_s34_ret.easy';
+            case 35
+                out.infoStimFileName        = '20161130094051_s35_enc.info';
+                out.stimulationFileName     = '20161130093833_s35_enc.stim';
+                out.eegEncodingFileName     = '20161130094051_s35_enc.easy';
+                out.eegRetrievalInfoFileName= '20161130100543_s35_ret.info';
+                out.eegRetrievalFileName    = '20161130100543_s35_ret.easy';
+            case 36
+                out.infoStimFileName        = '20161130135323_s36_enc.info';
+                out.stimulationFileName     = '20161130135039_s36_enc.stim';
+                out.eegEncodingFileName     = '20161130135323_s36_enc.easy';
+                out.eegRetrievalInfoFileName= '20161130142027_s36_ret.info';
+                out.eegRetrievalFileName    = '20161130142027_s36_ret.easy';
+            case 37
+                out.infoStimFileName        = '20161130160858_s37_enc.info';
+                out.stimulationFileName     = '20161130160613_s37_enc.stim';
+                out.eegEncodingFileName     = '20161130160858_s37_enc.easy';
+                out.eegRetrievalInfoFileName= '20161130163536_s37_ret.info';
+                out.eegRetrievalFileName    = '20161130163536_s37_ret.easy';
         end
         
 end

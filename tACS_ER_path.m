@@ -21,17 +21,20 @@ function thePath = tACS_ER_path(subjNum,exptType)
 %   'tacs_enc'  --> tacs at encoding
 %   'tacs_enc_xdiva' --> produces image files for xdiva presententation
 %   'tacs_er_objstim' --> matlab encoding tacs w object stimuli
+%   'behav_v13' --> indoor vs outdoor encoding task
+%   'behav_v14' --> manmade vs natural encoding task
 % subject 0 reserved for debugging/testing
 
 %------------------------------------------------------------------------%
 % Author:       Alex Gonzalez (from similar lab copies)
 % Created:      May 25, 2015
-% LastUpdate:   Sept 13st, 2016 
+% LastUpdate:   Jan 19, 2017
 %------------------------------------------------------------------------%
 
 exptOptions = {'behav','behav_v3','behav_v4','behav_v5','behav_v6',...
     'behav_v7','behav_v8','behav_v9','behav_v10','eeg','eeg_enc','tacs_enc',...
-    'tacs_enc_xdiva', 'behav_v11','behav_v12','tacs_enc_xdiva_obj','tacs_er_objstim'};
+    'tacs_enc_xdiva', 'behav_v11','behav_v12','tacs_enc_xdiva_obj', ...,
+    'tacs_er_objstim','behav_v13','behav_v14'};
 
 if ~any(strcmp(exptOptions,exptType))
     error('Experiment type not available; please see help tACS_ER_path')

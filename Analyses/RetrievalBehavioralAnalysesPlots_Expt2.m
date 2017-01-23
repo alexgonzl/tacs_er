@@ -9,9 +9,9 @@ load([dataPath 'Summary/BehavSummary.mat'])
 load([dataPath 'Summary/DataMatrix.mat'])
 
 % Exclusion of subjects based on poor behavioral performance
-badSubjs =  [3 6];
+badSubjs =  [3 6 8 27 29 32 34];
 
-nTotalSubjs      = 22;
+nTotalSubjs      = 37;
 subjs           = setdiff(1:nTotalSubjs,badSubjs);
 nSubjs          = numel(subjs);
 
@@ -116,7 +116,7 @@ m = mean(D(:,1));
 [~,p,~,t] = ttest(D(:,1));
 fprintf('Across subject overall dprime = %0.2f, t=%0.2f, p=%0.2g\n',m,t.tstat,p)
 %% dP by Confidence
-
+clc;
 % dPrime by confidence:
 DPC = behav_out.retSummary.dPrimeConf(subjs,:);
 figure(2); clf;
@@ -129,17 +129,17 @@ hold on;
 for ss = 1:nSubjs
     p=plot(1:3,DPC(ss,:),'linewidth',1,'color',[0.8 0.8 0.8]);
 end
-plot(1:3,mean(DPC),'linewidth',4,'color',[0.1 0.1 0.1]);
+plot(1:3,nanmean(DPC),'linewidth',4,'color',[0.1 0.1 0.1]);
 set(gca,'fontsize',30,'xTick',1:3,'xticklabel',{'Low','Med','High'})
 xlim([0.8 3.2])
-ylim([-1 4])
-set(gca,'LineWidth',3,'ytick',[0:3])
+ylim([-1.5 4.1])
+set(gca,'LineWidth',3,'ytick',[-2:2:6])
 ylabel(' d'' ')
 
 print(gcf,'-dpdf',[plotPath  'Confidence_dPrime'])
 
 
-disp(array2table(mean(DPC),'variablenames',{'Low','Med','High'}))
+disp(array2table(nanmean(DPC),'variablenames',{'Low','Med','High'}))
 [~,p1,~,t1]=ttest(DPC(:,2),DPC(:,1));
 [~,p2,~,t2]=ttest(DPC(:,3),DPC(:,2));
 [~,p3,~,t3]=ttest(DPC(:,3),DPC(:,1));
@@ -154,8 +154,8 @@ conf = dataset([1:3]','varnames',{'confidence'});
 rm = fitrm(t,'DPC1-DPC3~1','withindesign',conf);
 ranova(rm,'withinmodel','confidence-1')
 
-%% dP Confidence Face/Scenes
-close all
+%% dP Confidence Small/Big
+close all; clc;
 
 ylims = [-1.5 4.1];
 % Small
@@ -227,7 +227,7 @@ ranova(rm,'withinmodel','confidence*category-1')
 %
 
 %% RTs
-rng(1)
+rng(1); clc; close all
 strs    = {'medianHit_RTs','medianMiss_RTs','medianFA_RTs','medianCRs_RTs'};
 strs2   = {'Hits','Misses','FA','CRs'};
 nRTConds = numel(strs);
@@ -453,6 +453,15 @@ within = dataset(repmat((1:3)',[4,1]),['H','M','F','C','H','M','F','C'...
 rm = fitrm(t,'y1-y12~1','withindesign',within);
 ranova(rm,'withinmodel','memory*confidence-1')
 
+% For hits
+fprintf('Model for RTs Confidence for Hits n: \n')
+
+t = array2table(RTsConf(:,:,1));
+within = dataset([1:3]','varnames',{'confidence'});
+rm = fitrm(t,'Var1-Var3~1','withindesign',within);
+ranova(rm,'withinmodel','confidence-1')
+
+
 %% proportion of HC hits to to other categories:
 
 X=behav_out.retSummary.nH_nMiss_nFA_nCRs(subjs,:,:);
@@ -559,6 +568,7 @@ end
 print(gcf,'-dpdf',[plotPath 'propRespConf'])
 
 %% RTs by confidence/category and memory
+clc; close all
 RTs_Small       = zeros(nSubjs,3,4);
 nSmall_trials    =zeros(nSubjs,3,4);
 RTs_Big      = zeros(nSubjs,3,4);
@@ -602,7 +612,7 @@ end
 yLims = [0.5 2.5];
 yTicks1 = [0.5:0.5:2.5];
 
-strs = {'Faces','Scenes'};
+strs = {'Small','Big'};
 % RTs for scenes/faces:
 Y = cat(4,RTs_Small,RTs_Big);
 Colors = [SmallColor; BigColor];
@@ -656,6 +666,7 @@ fprintf(' RTs Small HC vs LC:  t=%0.2f, p = %0.2g \n\n',t.tstat,p)
 fprintf(' RTs Big HC vs LC:  t=%0.2f, p = %0.2g \n\n',t.tstat,p)
 
 %% nTrials for Scenes and Faces
+clc;
 Y = cat(4,nSmall_trials,nBig_trials);
 yLims = [0 150];
 yTicks1 = [0: 50: 200];

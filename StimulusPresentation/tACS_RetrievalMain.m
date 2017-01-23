@@ -19,7 +19,10 @@ sca;
 
 % load the task
 %fileName = strcat(thePath.subjectPath,'/', thePath.exptType,'.mat');
-fileName = strcat(thePath.subjectPath,'/','tacs_er_objstim.task.mat');
+%fileName = strcat(thePath.subjectPath,'/','tacs_er_objstim.task.mat');
+if strcmp(thePath.exptType,'behav_v13')
+    fileName = strcat(thePath.subjectPath,'/','tacs_er3_xdiva.task.mat');
+end
 if exist(fileName,'file')
     load(fileName);
 else
@@ -42,19 +45,22 @@ PresParams.UnsureButtonOpt      = 0;
 PresParams.ConfBarColor         = [0.2 0.1385 1];
 PresParams.SelfPaceFlag         = 0;
 
-PresParams.preStartTime         = 10;
+PresParams.preStartTime         = 1;
 PresParams.MaxResponseTime      = 3;       % maximum to make recognition decision
 PresParams.MaxConfDecInSecs     = 3;       % max time to make confidence decision
 PresParams.TotalTrialDur        = 3.5;       %
 
 if  any(strcmp(thePath.exptType,{'tacs_enc','tacs_enc_xdiva','tacs_enc_xdiva_obj','tacs_er_objstim'}))
     PresParams.StarStimEEG      = 1;
+else
+    PresParams.StarStimEEG      = 0;
 end
 
 % determine numbers for recognition decision
 % depending on subject number and active Keyboard.
 laptopResponseKeys = ['j','k','l'];
-keypadResponseKeys = ['1','2','3'];
+keypadResponseKeys = ['4','5','6'];
+ConfidenceKeys     = ['1','2','3'];
 RespConds         = {'old','unsure','new'};
 
 if mod(thePath.subjNum,2)
@@ -123,8 +129,10 @@ try
     % get correct mapping to keyboard
     if laptopKeyboardID==activeKeyboardID
         PresParams.RespButtons  = laptopResponseKeys;
+        RespButtons             = laptopResponseKeys;
     else
         PresParams.RespButtons = keypadResponseKeys;
+        RespButtons            = keypadResponseKeys;
     end
     % initialie window
     [window, windowRect] = initializeScreen;
@@ -199,14 +207,14 @@ try
         InstString = ['Instructions\n\n' ...
             'You will be presented with images that you might recognized from the previous task. '...
             'Your  in this part is to indentify which images were presented before and which ones are new '...
-            'by pres*sing a button. \n'...
+            'by pressing a button. \n'...
             'For ' RespConds{1} ' images you press the ''' PresParams.RespButtons(1) ''' key\n'...
-            'for ' RespConds{3} ' images you press the ''' PresParams.RespButtons(3) ''' key\n\n' ...
+            'For ' RespConds{3} ' images you press the ''' PresParams.RespButtons(3) ''' key\n\n' ...
             'After making the old/new judgment on the image, you will also be indicating your '...
             'confidence by pressing:\n'...
-            '''' PresParams.RespButtons(1) ''' press for low confidence \n'...
-            '''' PresParams.RespButtons(2) ''' press for mid confidence \n'...
-            '''' PresParams.RespButtons(3) ''' press for high confidence \n\n'...
+            '''' ConfidenceKeys(1) ''' press for low confidence \n'...
+            '''' ConfidenceKeys(2) ''' press for mid confidence \n'...
+            '''' ConfidenceKeys(3) ''' press for high confidence \n\n'...
             'Please make your responses as quickly and as accurate as possible.\n'...
             'If there are no questions, \n'...'
             'Press ''' resumeKey ''' to begin the experiment.'];
@@ -228,9 +236,9 @@ try
     end
     
     WrongConfKeyText = ['Please use only the following keys: \n \n' ...
-        PresParams.RespButtons(1) ' for low confidence \n' ...
-        PresParams.RespButtons(2) ' for mid confidence \n' ...
-        PresParams.RespButtons(3) ' for high confidence \n\n'...
+        ConfidenceKeys(1) ' for low confidence \n' ...
+        ConfidenceKeys(2) ' for mid confidence \n' ...
+        ConfidenceKeys(3) ' for high confidence \n\n'...
         'Press ''' resumeKey ''' to continue'];
     
     DrawFormattedText(window,InstString, 'wrapat', 'center', 255, ...
@@ -401,14 +409,20 @@ try
                 end
                 % Wait for Response
                 [secs,key]=KbQueueWait2(activeKeyboardID,PresParams.MaxConfDecInSecs-2*ifi);
-                if secs<inf && numel(key)==1
+                if secs<inf && ischar(key)
+                    if numel(key)>1
+                        key = key(1);
+                    end                        
                     switch key
-                        case PresParams.RespButtons(1)
+                        case ConfidenceKeys(1)
                             TimingInfo.ConfResp{tt} = 'low';
-                        case PresParams.RespButtons(2)
+                            TimingInfo.Confidence(tt)   = 1;
+                        case ConfidenceKeys(2)
                             TimingInfo.ConfResp{tt} = 'mid';
-                        case PresParams.RespButtons(3)
+                            TimingInfo.Confidence(tt)   = 2;
+                        case ConfidenceKeys(3)
                             TimingInfo.ConfResp{tt} = 'high';
+                            TimingInfo.Confidence(tt)   = 3;
                         otherwise
                             TimingInfo.ConfResp{tt} = 'wrongkey';
                             DrawFormattedText(window, WrongConfKeyText, 'center' , 'center');

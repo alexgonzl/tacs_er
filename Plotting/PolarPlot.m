@@ -61,7 +61,10 @@ end
 % max Radius
 if ~isfield(opts,'maxR')
     xLims = [-1 1]*max(rho(:));
-else
+else    
+    if isempty(opts.maxR);
+        opts.maxR = max(rho(:));
+    end
     xLims =  [-1 1]*opts.maxR;
 end
 
@@ -161,7 +164,10 @@ end
 % resulting mean vectors
 if meanVecs
     for jj = 1:nCategories
-        plot([0 real(zM(jj))],[0 imag(zM(jj))],'linewidth',5,'color',colors(jj,:)*0.9)
+        pp=plot([0 real(zM(jj))],[0 imag(zM(jj))],'linewidth',5,'color',colors(jj,:)*0.9);
+        pp.Marker = '.';
+        pp.MarkerSize=20;
+        pp.MarkerFaceColor=colors(jj,:);
     end
 end
 if magText
