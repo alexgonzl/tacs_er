@@ -111,7 +111,7 @@ end
 save([newStimDir,'imageSamplingWeightsv2'],'W','ImgNames','SceneCat')
 save([newStimDir,'imageRanksv2'],'R','ImgNames','SceneCat')
 
-%% Create new dir for in vs outdoor cat.
+%% Create new dir for in vs outdoor cat. % behav_v13 version
 clear all;
 masterDir   = '~/Google Drive/Research/tACS/tACS_ER_task/stim/';
 load([masterDir 'scene_categories/imageRanksv2.mat'])
@@ -140,3 +140,34 @@ for ii = 1:2
     end
 end
 save([allStimDir,'/selInOutImgsV2'],'ImgMat','selImgNames');
+
+%% Create new file for images for behav_v14 version. man made vs natural
+clear all;
+masterDir   = '~/Google Drive/Research/tACS/tACS_ER_task/stim/';
+load([masterDir 'scene_categories/imageRanksv2.mat'])
+allStimDir      = fullfile(masterDir,'scene_categories');
+
+nStimPerCat     = 300;
+nStimPerSubCat  = 100;
+selSceneCats = [1 2 4; 5 8 9]; % subselection of categories
+SceneCatNames = {'outdoor','outdoor'}; % man made vs natural
+%SceneCatNames = {'mm','na'}; % man made vs natural
+
+ImgMat = zeros(2,nStimPerCat,256,256,'uint8');
+selImgNames = cell(2,nStimPerCat);
+
+for ii = 1:2
+    cnt = 1;
+    for jj2 = 1:3
+        jj = selSceneCats(ii,jj2);
+        catDir = fullfile(allStimDir,'outdoor',SceneCat{2}{jj});
+        for kk =1:nStimPerSubCat
+            imgID = R{2}{jj}(kk);
+            imgName = ImgNames{2}{jj}{imgID};
+            ImgMat(ii,cnt,:,:) = imread([catDir '/' imgName]);
+            selImgNames{ii,cnt} = strcat(SceneCat{2}{jj},'_',imgName);
+            cnt = cnt+1;
+        end
+    end
+end
+save([allStimDir,'/selInOutImgs_v14'],'ImgMat','selImgNames');

@@ -10,7 +10,7 @@
 %------------------------------------------------------------------------%
 % Author:       Alex Gonzalez
 % Created:      Aug 20th, 2015
-% LastUpdate:   Sept 13th, 2016
+% LastUpdate:   Jan 30, 2017
 %------------------------------------------------------------------------%
 
 % clear all the screens
@@ -20,7 +20,7 @@ sca;
 % load the task
 %fileName = strcat(thePath.subjectPath,'/', thePath.exptType,'.mat');
 %fileName = strcat(thePath.subjectPath,'/','tacs_er_objstim.task.mat');
-if strcmp(thePath.exptType,'behav_v13')
+if strcmp(thePath.exptType,'behav_v13') || strcmp(thePath.exptType,'behav_v14')
     fileName = strcat(thePath.subjectPath,'/','tacs_er3_xdiva.task.mat');
 end
 if exist(fileName,'file')

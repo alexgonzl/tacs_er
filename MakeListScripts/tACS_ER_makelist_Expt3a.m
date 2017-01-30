@@ -102,7 +102,7 @@ end
 Stim2Mat    = Stim2Mat(rand2FileNums);
 Stim2Names  = Stim2Names(rand2FileNums);
 
-StimObj = containers.Map( [Stim1Names ; Stim2Names], [Stim2Mat; Stim1Mat]);
+StimObj = containers.Map( [Stim1Names ; Stim2Names], [Stim1Mat; Stim2Mat]);
 
 %% Encoding
 % Equal numbers of small and large obj stims: #N encoding trials/2 per type
