@@ -79,7 +79,6 @@ end
 %% load stimulii
 
 % stim 1 category: Indoor
-load([thePath.stim,'/scene_categories/imageRanksv2.mat']);
 load([thePath.stim,'/scene_categories/selInOutImgs_v14.mat']);
 
 Stim1Mat     = cell(nStim1,1);

@@ -20,7 +20,7 @@ sca;
 % load the task
 %fileName = strcat(thePath.subjectPath,'/', thePath.exptType,'.mat');
 %fileName = strcat(thePath.subjectPath,'/','tacs_er_objstim.task.mat');
-if strcmp(thePath.exptType,'behav_v13') || strcmp(thePath.exptType,'behav_v14')
+if any(strcmp(thePath.exptType,{'behav_v13','behav_v14','behav_v15'}))
     fileName = strcat(thePath.subjectPath,'/','tacs_er3_xdiva.task.mat');
 end
 if exist(fileName,'file')
@@ -92,7 +92,7 @@ if PresParams.StarStimEEG
         [ret,LSLOutlet]=MatNICMarkerConnectLSL('alexLSL');
         if ret<0
             error('could not connect to streaming layer')
-        end        
+        end
         
     catch msg
         MatNICMarkerCloseLSL(LSLOutlet);
@@ -206,7 +206,7 @@ try
     else
         InstString = ['Instructions\n\n' ...
             'You will be presented with images that you might recognized from the previous task. '...
-            'Your  in this part is to indentify which images were presented before and which ones are new '...
+            'Your task in this part is to indentify which images were presented before and which ones are new '...
             'by pressing a button. \n'...
             'For ' RespConds{1} ' images you press the ''' PresParams.RespButtons(1) ''' key\n'...
             'For ' RespConds{3} ' images you press the ''' PresParams.RespButtons(3) ''' key\n\n' ...
@@ -307,45 +307,49 @@ try
         
         % Wait for Response
         [secs,key]=KbQueueWait2(activeKeyboardID,PresParams.stimDurationInSecs-2*ifi);
-        if secs<inf && numel(key)==1
-            TimingInfo.trialKeyPress{tt} = key;
-            TimingInfo.trialRT(tt) = secs-trialTime;
-            
-            if PresParams.UnsureButtonOpt
-                switch key
-                    case PresParams.RespButtons(1)
-                        TimingInfo.CondResp{tt} = RespConds{1};
-                    case PresParams.RespButtons(2)
-                        TimingInfo.CondResp{tt} = RespConds{2};
-                    case PresParams.RespButtons(3)
-                        TimingInfo.CondResp{tt} = RespConds{3};
-                    otherwise
-                        TimingInfo.CondResp{tt} = 'wrongkey';
-                        DrawFormattedText(window, WrongKeyText, 'center' , 'center');
-                        vbl=Screen('Flip', window, vbl + 0.5*ifi);
-                        WaitTillResumeKey(resumeKey,activeKeyboardID)
-                end
-            else
-                switch key
-                    case PresParams.RespButtons(1)
-                        TimingInfo.CondResp{tt} = RespConds{1};
-                        if PresParams.StarStimEEG
-                            % old response marker
-                            sendMarker(6,LSLOutlet)
-                        end
-                    case PresParams.RespButtons(3)
-                        TimingInfo.CondResp{tt} = RespConds{3};
-                        if PresParams.StarStimEEG
-                            % new response marker
-                            sendMarker(7,LSLOutlet)
-                        end
-                    otherwise
-                        TimingInfo.CondResp{tt} = 'wrongkey';
-                        DrawFormattedText(window, WrongKeyText, 'center' , 'center');
-                        vbl=Screen('Flip', window, vbl + 0.5*ifi);
-                        WaitTillResumeKey(resumeKey,activeKeyboardID)
-                end
+        if secs<inf
+            if numel(key)>=1
+                key = key(1);
             end
+                TimingInfo.trialKeyPress{tt} = key;
+                TimingInfo.trialRT(tt) = secs-trialTime;
+                
+                if PresParams.UnsureButtonOpt
+                    switch key
+                        case PresParams.RespButtons(1)
+                            TimingInfo.CondResp{tt} = RespConds{1};
+                        case PresParams.RespButtons(2)
+                            TimingInfo.CondResp{tt} = RespConds{2};
+                        case PresParams.RespButtons(3)
+                            TimingInfo.CondResp{tt} = RespConds{3};
+                        otherwise
+                            TimingInfo.CondResp{tt} = 'wrongkey';
+                            DrawFormattedText(window, WrongKeyText, 'center' , 'center');
+                            vbl=Screen('Flip', window, vbl + 0.5*ifi);
+                            WaitTillResumeKey(resumeKey,activeKeyboardID)
+                    end
+                else
+                    switch key
+                        case PresParams.RespButtons(1)
+                            TimingInfo.CondResp{tt} = RespConds{1};
+                            if PresParams.StarStimEEG
+                                % old response marker
+                                sendMarker(6,LSLOutlet)
+                            end
+                        case PresParams.RespButtons(3)
+                            TimingInfo.CondResp{tt} = RespConds{3};
+                            if PresParams.StarStimEEG
+                                % new response marker
+                                sendMarker(7,LSLOutlet)
+                            end
+                        otherwise
+                            TimingInfo.CondResp{tt} = 'wrongkey';
+                            DrawFormattedText(window, WrongKeyText, 'center' , 'center');
+                            vbl=Screen('Flip', window, vbl + 0.5*ifi);
+                            WaitTillResumeKey(resumeKey,activeKeyboardID)
+                    end
+                end            
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%
         else
             DrawFormattedText(window,NoRespText, 'center' , 'center');
             vbl=Screen('Flip', window, vbl + 0.5*ifi);
@@ -412,7 +416,7 @@ try
                 if secs<inf && ischar(key)
                     if numel(key)>1
                         key = key(1);
-                    end                        
+                    end
                     switch key
                         case ConfidenceKeys(1)
                             TimingInfo.ConfResp{tt} = 'low';

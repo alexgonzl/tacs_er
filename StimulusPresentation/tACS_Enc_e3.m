@@ -14,7 +14,7 @@
 %------------------------------------------------------------------------%
 % Author:       Alex Gonzalez
 % Created:      Jan 22, 2017
-% LastUpdate:   Jan 23, 2016
+% LastUpdate:   Feb 2,  2017
 %------------------------------------------------------------------------%
 
 %% Set-up
@@ -28,7 +28,16 @@ fileName = strcat(thePath.subjectPath,'/tacs_er3_xdiva.task.mat');
 if exist(fileName,'file')
     load(fileName);
 else
-    tacs_er = tACS_ER_makelist_Expt3a(thePath);
+    switch tacs_er.exptType
+        case 'behav_v13'
+            tacs_er = tACS_ER_makelist_Expt3a(thePath);
+        case 'behav_v14'
+            tacs_er = tACS_ER_makelist_Expt3b(thePath);
+        case 'behav_v15'
+            tacs_er = tACS_ER_makelist_Expt3c(thePath);
+        otherwise
+            error('not currently supported expt.')
+    end
 end
 
 % For debugging:
@@ -37,7 +46,7 @@ end
 % Presentation Parameters
 PresParams = [];
 switch tacs_er.exptType
-    case {'behav_v13','behav_v14'}
+    case {'behav_v13','behav_v14','behav_v15'}
         PresParams.tACSstim             = 0;
     otherwise
         error('task not supported')
@@ -185,16 +194,16 @@ try
     if strcmp(tacs_er.exptType,'behav_v13')
     InstStr = ['Instructions\n\n' ...
         'A centrally presented ' PresParams.PreStimFixColorStr ' Fixation  Cross will indicate ' ...
-        'the start of a new event. Subsequently, you will presented with with a flashing image. '...
+        'the start of a new event. Subsequently, you will presented with a flashing image. '...
         'Your task is to indicate if the image was taken from inside a room, or if it is outdoors.\n\n' ...        
         'For INSIDE press the ''' PresParams.RespToCond1 ''' key. \n'...
         'For OUTSIDE press the ''' PresParams.RespToCond2 ''' key. \n\n'...        
         'If no questions, \n'...
         'Press ''' resumeKey ''' key to begin the experiment.'];
-    elseif strcmp(tacs_er.exptType,'behav_v14')
+    elseif any(strcmp(tacs_er.exptType,{'behav_v14','behav_v15'}))
        InstStr = ['Instructions\n\n' ...
         'A centrally presented ' PresParams.PreStimFixColorStr ' Fixation  Cross will indicate ' ...
-        'the start of a new event. Subsequently, you will presented with with a flashing image. '...
+        'the start of a new event. Subsequently, you will presented with a flashing image. '...
         'Your task is to indicate if the image contains a man-made object, or if it is completely natural.\n\n' ...        
         'For images containing MAN-MADE artificats press the ''' PresParams.RespToCond1 ''' key. \n'...
         'For images that are completely NATURALISTIC press the ''' PresParams.RespToCond2 ''' key. \n\n'...        
