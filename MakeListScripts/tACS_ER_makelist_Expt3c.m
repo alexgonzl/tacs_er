@@ -25,7 +25,7 @@ function [tacs_er] = tACS_ER_makelist_Expt3c(thePath)
 %
 % EncStimType       -> VECTOR trial of indicating type (1  man-made, 2 natural)
 % EncStimTypeIDs    -> {Mm,Na}; man made or natural
-% EncCondCodeIDs    -> {'Mm000','Mm036','Mm072','Mm108'...,'Na000',...}; 
+% EncCondCodeIDs    -> {'Mm000','Mm036','Mm072','Mm108'...,'Na000',...};
 % EncCondTrialCode  -> VECTOR trial encoding indicating EncCondCodeID
 % EncStimNames      -> VECTOR trial stimulus ID
 % EncStimUniqueIDs  -> VECTOR trial with unique ID for each stim
@@ -41,7 +41,7 @@ function [tacs_er] = tACS_ER_makelist_Expt3c(thePath)
 %------------------------------------------------------------------------%
 % Author:       Alex Gonzalez
 % Created:      Feb 2, 2017
-% LastUpdate:   Feb 2, 2017
+% LastUpdate:   Feb 17, 2017
 %------------------------------------------------------------------------%
 
 %% Set-up
@@ -52,7 +52,7 @@ nEncStim1           = 80;
 nEncStim2           = 80;
 nRetNewStim1        = 40;
 nRetNewStim2        = 40;
-stimSize            = [256 256];
+stimSize            = [256 256]*2;
 assert((nEncStim1+nEncStim2+nRetNewStim1+nRetNewStim2==nTotalStim),'incorrect numbers of stims')
 nStim1 = nEncStim1 + nRetNewStim1;
 nStim2 = nEncStim2 + nRetNewStim2;
@@ -73,6 +73,8 @@ s = RandStream.create('mt19937ar','seed',thePath.subjNum);
 RandStream.setGlobalStream(s)
 if strcmp(thePath.exptType,'behav_v15')
     save_xdiva_flag = 0;
+elseif strcmp(thePath.exptType,'tacs_er_xdiva_e3')
+    save_xdiva_flag = 1;
 else
     error('')
 end
@@ -84,7 +86,7 @@ load([thePath.stim,'/scene_categories/selInOutImgs_v15.mat']);
 Stim1Mat     = cell(nStim1,1);
 Stim1Names   = cell(nStim1,1);
 for n = 1:nStim1
-    Stim1Mat{n}     = squeeze(ImgMat(1,n,:,:));
+    Stim1Mat{n}     = imresize(squeeze(ImgMat(1,n,:,:)),2);
     Stim1Names{n}   = selImgNames{1,n};
 end
 rand1FileNums = datasample(1:nStim1,nStim1,'replace',false);
@@ -94,7 +96,7 @@ Stim1Names  = Stim1Names(rand1FileNums);
 Stim2Mat     = cell(nStim2,1);
 Stim2Names   = cell(nStim2,1);
 for n = 1:nStim2
-    Stim2Mat{n}     = squeeze(ImgMat(2,n,:,:));
+    Stim2Mat{n}     = imresize(squeeze(ImgMat(2,n,:,:)),2);
     Stim2Names{n}   = selImgNames{2,n};
 end
 rand2FileNums = datasample(1:nStim2,nStim2,'replace',false);
@@ -106,12 +108,12 @@ StimObj = containers.Map( [Stim1Names ; Stim2Names], [Stim1Mat; Stim2Mat]);
 %% Encoding
 % Equal numbers of stim1 and stim2: #N encoding trials/2 per type
 %
-% EncStimType -> 1 for man-made, 2 for natural 
+% EncStimType -> 1 for man-made, 2 for natural
 % EncStimNames -> name of the stimuli as it apperas on the database
 
 % order of man-made and natural per block
 EncStimTypeIDs  = {'Mm','Na'};
-EncStimType     = zeros(nEncTrials,1); 
+EncStimType     = zeros(nEncTrials,1);
 EncStimNames    = cell(nEncTrials,1);
 
 % Get Encoding man-made
@@ -170,12 +172,12 @@ assert(sum(histc(EncCondTrialCode,1:nEncConds)==nEncCondTrials)==nEncConds,'uneq
 
 RetCondIDs          = {'OldStim1','OldStim2','NewStim1','NewStim2'};
 nRetCondTrials      = [nEncStim1,nEncStim1,nRetNewStim1,nRetNewStim2]';
-RetCondTrialCode    = zeros(nRetTrials,1);    
+RetCondTrialCode    = zeros(nRetTrials,1);
 % assign condition such that each is equally likely per block.
 % also retry the sampling such that there are not more than maxNumConsecutiveOld
 % i.e., no that many consecutive old trials.
 counter = 1;
-while true    
+while true
     availableTrials = 1:nRetTrials;
     for cc = 1:nRetConds
         condTrials  = datasample(availableTrials,nRetCondTrials(cc),'replace',false);
@@ -227,7 +229,7 @@ tacs_er.nFoilTrials = nFoilTrials;  % # of novel items at retrieval
 tacs_er.nRetConds   = nRetConds;    % # of retrieval conditions (old/new * number of stimulus type)
 tacs_er.maxNumConsecutiveOld = maxNumConsecutiveOld; % parameter that constrains the maximum # of old items in a row
 
-tacs_er.RandStream = s; % random seed 
+tacs_er.RandStream = s; % random seed
 
 % encoding
 tacs_er.EncStimType     = EncStimType;      % categorical vector of stimulus types (length = # of trials)
@@ -239,7 +241,7 @@ tacs_er.EncStimUniqueIDs=EncStimUniqueIDs;  % unique ID for each image
 x = tacs_er.EncCondTrialCode;
 condNums = x;
 condNums(x>nEncPhases)=x(x>nEncPhases)-nEncPhases;
-tacs_er.EncTrialPhaseConds  = condNums;     % categorical vector of tacs phase (length = # of trials) 
+tacs_er.EncTrialPhaseConds  = condNums;     % categorical vector of tacs phase (length = # of trials)
 tacs_er.EncTrialPhase   = tacs_er.EncPhases(condNums); % actual phase for each trial
 
 % retrieval
@@ -282,10 +284,10 @@ PresParams.InstructionSet             = mod(thePath.subjNum,4)==0 +1;
 tacs_er.EncStim1RespID                = mod(thePath.subjNum,2)==0 +1;
 tacs_er.EncStim2RespID                = mod(thePath.subjNum,2)==1 +1;
 
-PresParams.tACSPreTaskWarmUpDur       = 3*60*PresParams.VideoFrameRate;     
+PresParams.tACSPreTaskWarmUpDur       = 3*60*PresParams.VideoFrameRate;
 tacs_er.PresParams = PresParams;
 % Save into subjects path
-fileName = 'tacs_er3_xdiva.task.mat';
+fileName = 'tacs_er_xdiva_e3.task.mat';
 if ~exist([thePath.subjectPath '/' fileName],'file')
     save([thePath.subjectPath '/' fileName],'tacs_er')
     mkdir([thePath.subjectPath '/xdiva/'])
@@ -305,63 +307,65 @@ else
 end
 
 if save_xdiva_flag
-if overwriteFlag
-    ZeroPhaseImgFrameIDs        = PresParams.FixCrossMinNFrames+1;    
-    ZeroPhaseBlankFrameIDs      = ZeroPhaseImgFrameIDs+PresParams.stimDurationInFrames;
+    if overwriteFlag
+        ZeroPhaseImgFrameIDs       = (PresParams.FixCrossMinNFrames+1):...
+            PresParams.stimDurationInFrames*2:PresParams.nXDivaFrames;
+        ZeroPhaseImgFrameIDs(PresParams.stimFrequency+1:end)=[];
     
-   
-    % Save individual stims into subjects path
-    fileName = 'tacs_er3_xdiva_';
-    
-    % pseudo trials before the task //** this is an xdiva fix for trouble
-    % going from condition to condition in run mode.
-    images = zeros([10 10,1,3], 'uint8');
-    images(:,:,1,1) = 128*ones([10 10],'uint8');
-    imageSequence = zeros(PresParams.nXDivaFrames,1,'uint32');
-    imageSequence(1)=1;    
-    nPreTaskPseudoTrials = 50;
-    for ii = 1:nPreTaskPseudoTrials
-        save([thePath.subjectPath '/xdiva/' fileName num2str(ii) '.mat'],'images','imageSequence')
-    end
-    images = zeros([stimSize,1,3], 'uint8');
-    images(:,:,1,2) = 128*ones(stimSize,'uint8');
-    images(:,:,1,3) = fixCrossImage(stimSize(1),round(stimSize(1)/20));
-    
-    for tt = 1:nEncTrials        
-        images(:,:,1,1) = StimObj(EncStimNames{tt});        
-        condNum = tacs_er.EncTrialPhaseConds(tt);        
-        % n phases go from 1 to nEncPhases, in jumps of 1 frame=36deg for 6Hz
-        % stimulation
+        ZeroPhaseBlankFrameIDs       = ZeroPhaseImgFrameIDs+PresParams.stimDurationInFrames;
+        
+        % Save individual stims into subjects path
+        fileName = 'tacs_er_xdiva_e3_';
+        
+        % pseudo trials before the task //** this is an xdiva fix for trouble
+        % going from condition to condition in run mode.
+        images = zeros([10 10,1,3], 'uint8');
+        images(:,:,1,1) = 128*ones([10 10],'uint8');
         imageSequence = zeros(PresParams.nXDivaFrames,1,'uint32');
-        imageSequence(1)=3;
-        imageSequence(ZeroPhaseImgFrameIDs+(condNum-1))=1;
-        imageSequence(ZeroPhaseBlankFrameIDs+(condNum-1))=2;        
-        save([thePath.subjectPath '/xdiva/' fileName num2str(tt+nPreTaskPseudoTrials) '.mat'],'images','imageSequence')
+        imageSequence(1)=1;
+        nPreTaskPseudoTrials = 60;
+        for ii = 1:nPreTaskPseudoTrials
+            save([thePath.subjectPath '/xdiva/' fileName num2str(ii) '.mat'],'images','imageSequence')
+        end
+        images = zeros([stimSize,1,3], 'uint8');
+        images(:,:,1,2) = 128*ones(stimSize,'uint8');
+        images(:,:,1,3) = fixCrossImage(stimSize(1),round(stimSize(1)/10));
+        
+        for tt = 1:nEncTrials
+            images(:,:,1,1) = StimObj(EncStimNames{tt});
+            condNum = tacs_er.EncTrialPhaseConds(tt);
+            % n phases go from 1 to nEncPhases, in jumps of 1 frame=36deg for 6Hz
+            % stimulation
+            imageSequence = zeros(PresParams.nXDivaFrames,1,'uint32');
+            imageSequence(1)=3;
+            imageSequence(ZeroPhaseImgFrameIDs+(condNum-1)*2)=1;
+            imageSequence(ZeroPhaseBlankFrameIDs+(condNum-1)*2)=2;
+            save([thePath.subjectPath '/xdiva/' fileName num2str(tt+nPreTaskPseudoTrials) '.mat'],'images','imageSequence')
+        end
+        
+        % save instructions (changes by subj number)
+        if PresParams.InstructionSet==1
+            img  = rgb2gray(imread([thePath.stim '/tacs_er3_ins1.png']));
+        else
+            img  = rgb2gray(imread([thePath.stim '/tacs_er3_ins2.png']));
+        end
+        images = zeros([size(img),1,1], 'uint8');
+        images(:,:,1,1) = img;
+        
+        % 2 mins worth of instructions.
+        imageSequence = zeros(PresParams.InstructionsLength,1,'uint32');
+        imageSequence(1)=1;
+        save([thePath.subjectPath '/xdiva/Instructions_1.mat'],'images','imageSequence')
+        
+        % save pre-task warm up sequence
+        images = zeros([200,200,1,1], 'uint8');
+        images(:,:,1,1) = 128*ones([200 200],'uint8');
+        
+        imageSequence = zeros(PresParams.tACSPreTaskWarmUpDur,1,'uint32');
+        imageSequence(1)=1;
+        save([thePath.subjectPath '/xdiva/tACSPreTask_1.mat'],'images','imageSequence')
+        
     end
-    
-    % save instructions (changes by subj number)
-    if PresParams.InstructionSet==1
-        img  = rgb2gray(imread([thePath.stim '/tacs_er3_ins1.png']));
-    else
-        img  = rgb2gray(imread([thePath.stim '/tacs_er3_ins2.png']));
-    end
-    images = zeros([size(img),1,1], 'uint8');
-    images(:,:,1,1) = img;        
-    
-    % 2 mins worth of instructions.
-    imageSequence = zeros(PresParams.InstructionsLength,1,'uint32');
-    imageSequence(1)=1;    
-    save([thePath.subjectPath '/xdiva/Instructions_1.mat'],'images','imageSequence')
-    
-    % save pre-task warm up sequence    
-    images = zeros([200,200,1,1], 'uint8');
-    images(:,:,1,1) = 128*ones([200 200],'uint8');
-    
-    imageSequence = zeros(PresParams.tACSPreTaskWarmUpDur,1,'uint32');
-    imageSequence(1)=1;    
-    save([thePath.subjectPath '/xdiva/tACSPreTask_1.mat'],'images','imageSequence')
-    
-end
 end
 end
 
@@ -386,11 +390,11 @@ function [Y,index] = Shuffle(X)
 [n,m] = size(X);
 Y = zeros(size(X));
 if n == 1 || m == 1
-	Y = X(index);
+    Y = X(index);
 else
-	for j = 1:m
-		Y(:,j)  = X(index(:,j),j);
-	end
+    for j = 1:m
+        Y(:,j)  = X(index(:,j),j);
+    end
 end
 end
- 
+

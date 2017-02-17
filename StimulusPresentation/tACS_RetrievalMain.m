@@ -20,8 +20,8 @@ sca;
 % load the task
 %fileName = strcat(thePath.subjectPath,'/', thePath.exptType,'.mat');
 %fileName = strcat(thePath.subjectPath,'/','tacs_er_objstim.task.mat');
-if any(strcmp(thePath.exptType,{'behav_v13','behav_v14','behav_v15'}))
-    fileName = strcat(thePath.subjectPath,'/','tacs_er3_xdiva.task.mat');
+if any(strcmp(thePath.exptType,{'behav_v13','behav_v14','behav_v15','tacs_er_xdiva_e3'}))
+    fileName = strcat(thePath.subjectPath,'/','tacs_er_xdiva_e3.task.mat');
 end
 if exist(fileName,'file')
     load(fileName);

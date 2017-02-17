@@ -24,7 +24,7 @@ close all;
 sca;
 
 % load the task
-fileName = strcat(thePath.subjectPath,'/tacs_er3_xdiva.task.mat');
+fileName = strcat(thePath.subjectPath,'/tacs_er_xdiva_e3.task.mat');
 if exist(fileName,'file')
     load(fileName);
 else
